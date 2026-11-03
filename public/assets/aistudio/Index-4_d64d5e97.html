@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boletín UVEH</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400..800;1,500..800&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style id="uveh-css">
+:root{
+  --bg:#EEF0F4; --surface:#FFFFFF; --surface-2:#F4F5F8; --ink:#1A1D29; --ink-2:#5B6275; --line:#E4E7EE;
+  --wine:#7B1E3E; --wine-ink:#FFFFFF; --wine-soft:#F6E9EE;
+  --crit:#C62B35; --crit-soft:#FDECEC; --warn:#A8620A; --warn-soft:#FFF3E0; --info:#2F5FA8; --info-soft:#E8EFFA; --ok:#17724A; --ok-soft:#E6F4EC; --mut:#667085; --mut-soft:#E9ECF2;
+  --shadow:0 1px 2px rgba(20,25,45,.05);
+  --display:"Figtree","Segoe UI",Roboto,Arial,sans-serif;
+  --body:"Figtree","Segoe UI",Roboto,Arial,sans-serif;
+  --mono:ui-monospace,Consolas,monospace;
+  color-scheme:light;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  color-scheme:dark;--bg:#101218;--surface:#1A1D26;--surface-2:#232734;--ink:#ECEEF4;--ink-2:#A5ACBD;--line:#2C3140;
+  --wine:#DB7A95;--wine-ink:#1B0E14;--wine-soft:#3A2030;--crit:#FF8078;--crit-soft:#3F1E22;--warn:#F2B34C;--warn-soft:#3A2C12;--info:#8DB3E6;--info-soft:#1B2838;--ok:#6FCF97;--ok-soft:#17301F;--mut:#9AA2B3;--mut-soft:#2A2F3D;--shadow:none;}}
+:root[data-theme="dark"]{
+  color-scheme:dark;--bg:#101218;--surface:#1A1D26;--surface-2:#232734;--ink:#ECEEF4;--ink-2:#A5ACBD;--line:#2C3140;
+  --wine:#DB7A95;--wine-ink:#1B0E14;--wine-soft:#3A2030;--crit:#FF8078;--crit-soft:#3F1E22;--warn:#F2B34C;--warn-soft:#3A2C12;--info:#8DB3E6;--info-soft:#1B2838;--ok:#6FCF97;--ok-soft:#17301F;--mut:#9AA2B3;--mut-soft:#2A2F3D;--shadow:none;}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;padding-inline:20px;padding-block:0 64px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;letter-spacing:-.01em}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--wine);outline-offset:2px}
+.wrap{max-width:1600px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.mast{background:var(--surface);color:var(--ink);border-bottom:1px solid var(--line);margin-inline:-20px;padding:14px 20px}
+.mast-in{max-width:1600px;margin:0 auto;display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between}
+.brand{display:flex;gap:12px;align-items:center}
+.logo{width:56px;height:56px;border-radius:50%;background:#fff;object-fit:cover;flex:none;box-shadow:0 0 0 1px var(--line)}
+.mast h1{font-size:20px;font-weight:750;line-height:1.15}
+.mast .fecha{font-size:14px;color:var(--ink-2);margin-top:1px}
+.mast .fecha::first-letter{text-transform:uppercase}
+.estado{display:inline-flex;align-items:center;gap:6px;margin-top:6px;font-weight:650;font-size:13px;padding:2px 10px;border-radius:999px;background:var(--ok-soft);color:var(--ok)}
+.estado.viejo{background:var(--warn-soft);color:var(--warn)}
+.mast-btns{display:flex;gap:8px;flex-wrap:wrap}
+.hbtn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:8px 14px;font-weight:650;font-size:14.5px;min-height:42px}
+.hbtn:hover{border-color:var(--wine)}
+.hbtn.solid{background:var(--wine);color:var(--wine-ink);border-color:var(--wine)}
+#file{display:none}
+body.dragging .mast{outline:4px dashed var(--wine);outline-offset:-8px}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:9px 16px;font-weight:650;min-height:44px;display:inline-flex;align-items:center;gap:8px}
+.btn:hover{border-color:var(--wine)}
+.btn.primary{background:var(--wine);color:var(--wine-ink);border-color:var(--wine)}
+.btn:disabled{opacity:.6;cursor:wait}
+.banner{border-radius:14px;padding:12px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line)}
+.banner .txt{flex:1 1 280px}.banner.warn .txt{flex-basis:200px}
+.banner.warn{padding:5px 10px;border-radius:10px;font-size:12.5px;line-height:1.3;background:var(--warn-soft);border-color:color-mix(in srgb,var(--warn) 40%,transparent)}
+.banner.err{background:var(--crit-soft);border-color:var(--crit)}
+.banner.preview{background:var(--info-soft);border-color:color-mix(in srgb,var(--info) 40%,transparent)}
+.ayuda{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 20px;display:grid;gap:14px}
+.ayuda h2{font-size:22px}
+.ayuda ol{margin:0;padding-left:22px;display:grid;gap:8px}
+.ayuda li b{color:var(--wine)}
+.leyenda{display:flex;flex-wrap:wrap;gap:8px}
+/* Filtro de servicio: botones siempre visibles, en una fila */
+.servicio{display:none}
+.panel-svc{background:none;border:0;padding:0;display:block}
+.panel-svc .q{display:none}
+.panel-svc .grid{display:flex;flex-wrap:wrap;gap:8px}
+.svc-btn{display:inline-flex;align-items:center;gap:8px;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 15px;font-weight:600;font-size:14.5px;min-height:40px}
+.svc-btn:hover{border-color:var(--wine)}
+.svc-btn[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.num{font-family:var(--body);font-variant-numeric:tabular-nums;font-size:12.5px;font-weight:700;min-width:24px;text-align:center;border-radius:999px;padding:1px 8px;background:var(--mut-soft);color:var(--ink-2)}
+.num.hot{background:var(--crit);color:#fff}
+.svc-btn[aria-pressed="true"] .num{background:color-mix(in srgb,var(--bg) 22%,transparent);color:var(--bg)}
+.svc-btn[aria-pressed="true"] .num.hot{background:var(--crit);color:#fff}
+/* Pestañas: texto con subrayado, se deslizan de lado si no caben */
+.tabs{display:flex;flex-wrap:wrap;gap:8px;padding:0}
+.tab{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 15px;display:inline-flex;align-items:center;gap:8px;min-height:40px;color:var(--ink);text-align:left;white-space:nowrap}
+.tab:hover{border-color:var(--wine)}
+.tab .t{order:1;font-weight:600;font-size:14.5px;line-height:1.2}
+.tab .n{order:2;font-family:var(--body);font-variant-numeric:tabular-nums;font-size:12.5px;font-weight:700;line-height:1.5;border-radius:999px;padding:1px 8px;min-width:24px;text-align:center;background:var(--mut-soft);color:var(--ink-2)}
+.tab.t-crit .n{background:var(--crit-soft);color:var(--crit)} .tab.t-warn .n{background:var(--warn-soft);color:var(--warn)} .tab.t-mut .n{background:var(--mut-soft);color:var(--ink-2)} .tab.t-ok .n{background:var(--ok-soft);color:var(--ok)} .tab.t-info .n{background:var(--info-soft);color:var(--info)} .tab.t-wine .n{background:var(--wine-soft);color:var(--wine)}
+.tab[aria-selected="true"]{background:var(--wine);color:var(--wine-ink);border-color:var(--wine)}
+.tab[aria-selected="true"] .n{background:color-mix(in srgb,var(--wine-ink) 22%,transparent);color:var(--wine-ink)}
+.resumen{font-size:18px;line-height:1.4}
+.resumen b{color:var(--crit)}
+.buscar{display:flex;gap:8px;align-items:center}
+.buscar input{flex:1;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 14px;min-height:46px;min-width:0}
+.grp{display:grid;gap:12px}
+.grp-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:0;background:none;padding:6px 2px;text-align:left;width:100%;border-bottom:1px solid var(--line)}
+.grp-h h3{font-size:21px;font-weight:750;flex:1 1 auto}
+.grp-h .flecha{font-size:16px;color:var(--ink-2);width:20px}
+.sub-h{font-weight:700;font-size:15px;color:var(--ink-2);display:flex;gap:8px;align-items:center;margin-top:4px}
+.lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;align-items:start}
+@media (max-width:420px){.lista{grid-template-columns:1fr}}
+/* Ficha de paciente */
+.pac{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden}
+.pac::before{content:"";position:absolute;left:0;top:18px;bottom:18px;width:4px;border-radius:0 4px 4px 0;background:var(--mut)}
+.pac.p0::before{background:var(--crit)} .pac.p1::before{background:#E08A1E} .pac.p2::before{background:var(--info)}
+.who{display:flex;gap:13px;align-items:flex-start;padding:16px 16px 4px 18px}
+.cama{font-family:var(--body);font-weight:800;font-size:15px;background:var(--surface-2);color:var(--ink);border-radius:11px;padding:6px 10px;white-space:nowrap;text-align:center;line-height:1.25;min-width:58px}
+.cama small{display:block;font-size:10.5px;letter-spacing:0;color:var(--ink-2);font-weight:600}
+.nm{font-weight:720;font-size:17px;line-height:1.25;letter-spacing:-.01em;overflow-wrap:anywhere}
+.meta{font-size:14px;color:var(--ink-2);margin-top:2px}
+.eventos{padding:8px 16px 12px 18px;display:flex;flex-direction:column;gap:0}
+.evento{border:0;border-top:1px solid var(--line);border-radius:0;padding:14px 0 0;margin-top:14px;display:grid;gap:10px;background:none}
+.evento:first-child{border-top:0;margin-top:0;padding-top:6px}
+.evento.nuevo{background:var(--wine-soft);border-radius:12px;padding:12px;border-top:0}
+.evento.done{opacity:.6}
+.evento .prio{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0;padding:0;background:none}
+.evento .prio>span:first-child{font-size:13px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--mut-soft);color:var(--mut)}
+.evento.p0 .prio>span:first-child{background:var(--crit-soft);color:var(--crit)} .evento.p1 .prio>span:first-child{background:var(--warn-soft);color:var(--warn)} .evento.p2 .prio>span:first-child{background:var(--info-soft);color:var(--info)}
+.prio .extra{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.q{font-size:12.5px;font-weight:650;color:var(--ink-2);margin-bottom:2px}
+.hacer{background:var(--surface-2);border-radius:12px;padding:10px 12px}
+.hacer .q{color:var(--ink-2)}
+.hacer>div:not(.q){font-size:14px;line-height:1.45}
+.micro{background:none;border:0;padding:0}
+.micro-chips{display:flex;flex-direction:column;gap:8px;margin-top:3px}
+.chip-micro{display:flex;flex-direction:column;align-items:flex-start;gap:4px;border-radius:12px;padding:10px 12px;font-style:italic;font-weight:750;font-size:16.5px;line-height:1.2;overflow-wrap:anywhere}
+.chip-micro .cm-top{display:flex;flex-direction:column;gap:2px}
+.chip-micro .st{font-style:normal;font-weight:700;font-size:12.5px;letter-spacing:0}
+.chip-micro .cm-muestra{font-style:normal;font-weight:550;font-size:14px;line-height:1.3;color:var(--ink)}
+.chip-micro.cap{background:var(--ok-soft);color:var(--ok)}
+.chip-micro.pend{background:var(--crit-soft);color:var(--crit)}
+.atb{background:var(--surface-2);border:0;border-radius:12px;padding:10px 12px}
+.atbtext{font-size:12.5px;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}
+.tag{display:inline-block;font-size:12px;font-weight:650;border-radius:7px;padding:3px 9px;white-space:nowrap}
+.tag.new{background:var(--wine);color:var(--wine-ink)}
+.tag.lab{background:var(--info-soft);color:var(--info)}
+.tag.norh{background:var(--crit-soft);color:var(--crit)}
+.tag.pend{background:var(--warn-soft);color:var(--warn)}
+.tag.ok{background:var(--ok-soft);color:var(--ok)}
+.tag.prog{background:var(--mut-soft);color:var(--ink)}
+details.mas>summary{cursor:pointer;font-weight:650;font-size:14px;color:var(--wine);list-style:none;min-height:32px;display:flex;align-items:center}
+details.mas>summary::-webkit-details-marker{display:none}
+details.mas>summary::before{content:"Ver más datos ▾"}
+details.mas[open]>summary::before{content:"Ocultar datos ▴"}
+.datos{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px;margin:6px 0 0}
+.datos dt{color:var(--ink-2)} .datos dd{margin:0;overflow-wrap:anywhere}
+.rv-tira{background:var(--surface);border:2px solid #0E7C86;border-radius:12px;overflow:hidden}
+.rv-head{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 14px;background:transparent;border:0;color:#0E7C86;font-weight:800;font-size:15px;text-align:left}
+.rv-list{border-top:1px solid var(--line);max-height:340px;overflow:auto;padding:4px 10px 8px}
+.rv-row{display:flex;justify-content:space-between;align-items:center;gap:8px 12px;flex-wrap:wrap;padding:7px 2px;border-bottom:1px solid var(--line);font-size:14px}
+.rv-l{display:flex;align-items:baseline;gap:4px 10px;flex-wrap:wrap;min-width:0}
+.rv-cama{font-weight:800;background:var(--surface-2);border-radius:6px;padding:1px 7px;font-size:13px}
+.rv-nm{font-weight:800}.rv-sv,.rv-by{color:var(--ink-2);font-size:13px}
+.rv-b{display:flex;gap:6px;flex-wrap:wrap}
+.rv-btn{border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:5px 10px;font-size:13px;font-weight:700}
+.rv-btn:hover{border-color:#0E7C86}
+.rv-ficha{padding:8px 0 4px}
+.lote{display:grid;gap:10px}
+.lote-help{font-size:14.5px;color:var(--ink-2);margin:0}
+.lote-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.lote-sum{font-weight:800;font-size:15px}
+.lote-row{display:grid;grid-template-columns:96px 1fr;gap:6px 12px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px}
+.lote-row img{width:96px;border-radius:6px;border:1px solid var(--line);cursor:zoom-in;background:#fff}
+.lote-row img.big{position:fixed;inset:5vh 0 auto 0;margin:auto;width:min(92vw,720px);max-height:90vh;object-fit:contain;z-index:50;box-shadow:0 10px 40px rgba(0,0,0,.45);cursor:zoom-out}
+.lote-row select{width:100%;padding:8px;border:1.5px solid var(--line);border-radius:8px;font:inherit;font-size:14.5px;background:var(--surface);color:var(--ink)}
+.lote-ocr{font-size:13px;color:var(--ink-2);margin-bottom:5px;overflow-wrap:anywhere}
+.lote-st{display:inline-block;font-size:12.5px;font-weight:800;border-radius:99px;padding:2px 9px;margin-top:5px}
+.lote-st.ok{background:var(--ok-soft);color:var(--ok)}.lote-st.rev{background:var(--warn-soft);color:var(--warn)}.lote-st.om{background:var(--mut-soft);color:var(--mut)}
+.lote-prog{height:8px;border-radius:99px;background:var(--mut-soft);overflow:hidden}.lote-prog>i{display:block;height:100%;background:#0E7C86;width:0}
+.obs{font-size:13.5px;color:var(--ink-2);max-height:100px;overflow-y:scroll;scrollbar-width:thin;background:var(--surface-2);border-radius:10px;padding:8px 10px;margin-top:8px}
+.revisar-grp{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;padding-top:8px;border-top:1px solid var(--line)}
+.revisar{margin:0;border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;min-height:42px;padding:0 8px;font-weight:800;font-size:15.5px;line-height:1.15;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.revisar:hover{border-color:var(--wine)}
+.revisar-grp .revisar:first-child{background:#0E7C86;color:#fff;border-color:#0E7C86}
+.revisar-grp .revisar:first-child:hover{background:#0B656D;border-color:#0B656D}
+.revisar-grp .revisar.siniaas{background:var(--surface);color:var(--ink-2);border-color:var(--line);font-size:14.5px}
+.revfin{margin:2px 14px 14px}.revfin>.revisar{width:100%;min-height:42px;font-size:15px;background:var(--ok-soft);color:var(--ok);border-color:transparent}.revfin>.revisar.siniaas{background:var(--wine-soft);color:var(--wine)}
+.evento>.revisar{margin-top:2px;align-self:stretch;min-height:42px;font-size:15px;background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.evento>.revisar.siniaas{background:var(--wine-soft);color:var(--wine)}
+.crit-box{display:flex;flex-direction:column;gap:6px;background:#f6f9fa;border:1px solid var(--line);border-radius:10px;padding:10px;margin:4px 0 8px}
+.crit-box label{display:flex;gap:8px;align-items:flex-start;font-size:14px;cursor:pointer}
+.crit-box select{width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;font-size:14px}
+.crit-box .cumple{display:flex;gap:14px;flex-wrap:wrap}
+.crit-res{font-size:12px;color:var(--ink-2)}
+.lnkline{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.evento>.lnkline{border-top:1px solid var(--line);margin-top:2px;padding-top:4px}
+.masbtn{background:none;border:0;font-weight:700;font-size:16.5px;color:var(--ink-2);padding:6px 2px;min-height:40px}
+.masbtn:hover{color:var(--wine)}
+.masbody{padding:2px 0 8px}
+.pac>.masbody{padding:0 16px 16px 18px;border-top:1px solid var(--line);padding-top:12px}
+.hechos{border-top:1px dashed var(--line);padding-top:10px}
+.hechos>summary{cursor:pointer;font-weight:650;color:var(--ok);min-height:40px;display:flex;align-items:center}
+.subrow{display:flex;flex-direction:column;gap:6px}
+.subrow .q{margin:0}
+.brotes{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.brote{background:var(--surface);border:1px solid var(--line);border-top:5px solid var(--warn);border-radius:16px;padding:14px 16px;display:grid;gap:8px;align-content:start}
+.brote.ab{border-top-color:var(--crit)}
+.brote h3{font-size:20px;font-style:italic}
+.brote ul{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.brote li{display:flex;flex-direction:column;gap:0}
+.fila-pac{display:flex;gap:10px;align-items:center;width:100%;border:1px solid transparent;background:transparent;border-radius:10px;padding:4px;margin:-4px;text-align:left;min-height:0}
+.fila-pac:hover{border-color:var(--line);background:var(--surface-2)}
+.fila-pac .flecha{margin-left:auto;color:var(--ink-2);font-size:14px}
+.brote-ficha{margin:8px 0 2px}
+.explica{color:var(--ink-2);font-size:15px;max-width:75ch}
+.progs{display:flex;flex-wrap:wrap;gap:8px}
+.egr-wrap{display:flex;flex-direction:column;gap:6px}
+.egr-tag{align-self:flex-start;background:var(--mut-soft);border-radius:999px;padding:3px 12px;font-size:13px;font-weight:700;color:var(--ink-2)}
+.egr-tag.def{background:var(--crit-soft);color:var(--crit)}
+.pbtn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 15px;font-weight:600;font-size:14.5px;min-height:40px;display:inline-flex;gap:8px;align-items:center}
+.pbtn:hover{border-color:var(--wine)}
+.pbtn[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.pbtn[aria-pressed="true"] .num{background:color-mix(in srgb,var(--bg) 22%,transparent);color:var(--bg)}
+.fila{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px;display:grid;grid-template-columns:auto 1fr;gap:6px 12px;align-items:start}
+.fila .nm{font-size:16px}
+.fila .r2{grid-column:1 / -1;font-size:14px;color:var(--ink-2)}
+.vacio{background:var(--surface);border:1px dashed var(--line);border-radius:16px;padding:36px 20px;text-align:center;color:var(--ink-2)}
+.vacio h2{color:var(--ink);font-size:24px;margin-bottom:6px}
+.nota{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 16px;color:var(--ink-2);font-size:15px}
+.nota summary{cursor:pointer;font-weight:650;color:var(--wine)}
+.notaenf-bar{padding:0 16px 12px 18px}
+.notaenf-bar .btn{width:100%;justify-content:center;border-color:var(--info);color:var(--info)}
+.pac-nota{margin:0 16px 12px 18px;background:var(--info-soft);border:1px solid color-mix(in srgb,var(--info) 40%,transparent);border-radius:12px;padding:10px 12px;color:var(--ink);font-size:14.5px}
+.pac-nota-box{width:100%;min-height:90px;font-size:14.5px;font-family:inherit;border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--surface);color:var(--ink)}
+.wa-box{width:100%;min-height:240px;font-family:var(--mono);font-size:13px;border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--surface);color:var(--ink)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:12px;font-weight:650;z-index:30;max-width:calc(100% - 32px);text-align:center}
+.hbtn .badge{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;margin-left:8px;border-radius:999px;background:var(--wine);color:var(--wine-ink);font-size:12px;font-weight:700}
+.notabox{margin:0 16px 14px 18px}
+.notalink{background:none;border:0;color:var(--wine);font-weight:650;font-size:14px;padding:6px 0;min-height:36px;text-decoration:underline;text-underline-offset:2px}
+.notaform{display:grid;gap:8px;margin-top:6px;background:var(--surface-2);border-radius:12px;padding:10px}
+.notaform textarea{width:100%;min-height:74px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--surface);color:var(--ink);font-family:var(--body);font-size:15px;resize:vertical}
+.notas-list{display:grid;gap:10px}
+.archbox{margin:0;padding:10px 16px 14px 18px;border-top:1px solid var(--line)}
+.arch-list{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
+.arch-item{display:flex;align-items:center;gap:10px;background:#EEE9FA;border:0;border-left:5px solid #6A4FB3;border-radius:10px;padding:10px 12px;color:#2E2357;text-decoration:none;font-size:14px;font-weight:700}
+.arch-item:hover{background:#E2DAF6;outline:0}
+.arch-ico{font-size:20px;line-height:1}
+.arch-txt{flex:1;min-width:0;word-break:break-word}
+.arch-ver{margin-left:auto;background:#6A4FB3;color:#fff;border-radius:999px;padding:3px 12px;font-size:12.5px;font-weight:700;white-space:nowrap}
+.arch-meta{color:#5B4A99;font-weight:500;font-size:13px;display:block}
+.archform{display:grid;gap:8px;margin-top:6px;background:var(--surface-2);border-radius:12px;padding:10px}
+.archbox .notalink{text-decoration:none;color:var(--ink-2);font-size:16.5px;font-weight:700}
+.archbox .notalink:hover{color:var(--wine)}
+.nota-item{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:4px}
+.nota-item.aplicada{opacity:.65}
+.nota-head{font-size:15px;font-weight:700}
+.nota-txt{font-size:15px}
+.nota-meta{font-size:13px;color:var(--ink-2)}
+.nota-acc{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.nota-edit{width:100%;font:inherit;font-size:15px;padding:8px;border:2px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)}
+footer{font-size:13.5px;color:var(--ink-2);border-top:1px solid var(--line);padding-top:12px}
+/* ===== Navegación simplificada (letra grande, un paso a la vez) ===== */
+.app{display:grid;grid-template-columns:250px minmax(0,1fr);gap:24px;align-items:start}
+.nv-side{position:sticky;top:12px}
+.nv-main{display:flex;flex-direction:column;gap:14px;min-width:0}
+.nv-inicio{display:flex;flex-direction:column;gap:12px}
+.nv-lista{display:flex;flex-direction:column;gap:16px}
+.nv-lbl{font-size:15px;font-weight:800;color:var(--ink-2);letter-spacing:.03em;text-transform:uppercase;margin:0}
+.app .nv-m{display:none}
+.nv-svc{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:var(--surface);color:var(--ink);border:2px solid var(--line);border-radius:16px;padding:0 14px;min-height:54px;margin:0 0 8px;font-size:17px;font-weight:800;text-align:left}
+.nv-svc:hover{border-color:var(--wine)}
+.nv-svc[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.nv-n{min-width:40px;height:36px;border-radius:99px;display:inline-flex;align-items:center;justify-content:center;font-size:19px;font-weight:800;background:var(--mut-soft);color:var(--ink);padding:0 12px;font-variant-numeric:tabular-nums}
+.nv-n.r{background:var(--crit);color:#fff}.nv-n.w{background:var(--warn-soft);color:var(--warn)}.nv-n.g{background:var(--ok-soft);color:var(--ok)}
+.nv-svc[aria-pressed="true"] .nv-n:not(.r){background:color-mix(in srgb,var(--bg) 22%,transparent);color:var(--bg)}
+.nv-lists{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.nv-opt{display:flex;align-items:center;gap:8px;background:var(--surface);color:var(--ink);border:2px solid var(--line);border-radius:14px;padding:10px 10px;min-height:72px;text-align:left}
+.nv-opt:hover{border-color:var(--wine)}
+.nv-opt.main{border-color:var(--wine);background:var(--wine-soft)}
+.nv-opt.dash{border-style:dashed}
+.nv-opt .ic{font-size:22px;flex:none}
+.nv-opt .nv-n{min-width:30px;height:28px;font-size:15px;padding:0 8px}
+.nv-opt .tx{flex:1;min-width:0;font-size:15px;font-weight:800;line-height:1.15}
+.nv-opt .tx small{display:block;font-size:12px;font-weight:500;color:var(--ink-2);margin-top:3px}
+.nv-chev{font-size:22px;color:var(--ink-2)}
+.nv-otras{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;background:var(--surface-2);border-radius:16px;padding:12px}
+.nv-orow{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface);color:var(--ink);border:2px solid var(--line);border-radius:14px;min-height:56px;padding:0 16px;font-size:18px;font-weight:700;text-align:left}
+.nv-orow:hover{border-color:var(--wine)}.nv-orow.sel{border-color:var(--wine);background:var(--wine-soft)}
+.subrow{display:block}
+.nv-area{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:17px;font-weight:700}
+.nv-area select{min-height:54px;border:2px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);font-size:18px;font-weight:700;padding:0 14px;min-width:260px;max-width:100%}
+.buscar input{min-height:54px;font-size:18px;border:2px solid var(--line);border-radius:14px}
+.nv-bar{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px 12px}
+.nv-back{border:2px solid var(--ink);border-radius:14px;padding:10px 16px;font-weight:800;font-size:19px;background:var(--surface);color:var(--ink)}
+.nv-ti{font-size:21px;font-weight:800;line-height:1.15}.nv-ti small{display:block;font-size:15.5px;font-weight:600;color:var(--ink-2)}
+.nv-note{background:var(--surface);border-radius:12px;padding:10px 14px;font-size:15px;color:var(--ink-2);margin:6px 0 0;line-height:1.35}
+.nv-big{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface);color:var(--ink);border:2px solid var(--ink);border-radius:18px;padding:0 18px;min-height:68px;font-size:22px;font-weight:800;text-align:left}
+.nv-big small{display:block;font-size:15px;font-weight:600;color:var(--ink-2)}
+.nv-more{display:flex;gap:10px}
+.nv-more button{flex:1;position:relative;background:var(--surface);color:var(--ink);border:2px solid var(--line);border-radius:16px;padding:12px 6px;text-align:center;font-size:16.5px;font-weight:700;line-height:1.2}
+.nv-more button i{display:block;font-style:normal;font-size:26px;margin-bottom:3px}
+.nv-more .badge{position:absolute;top:6px;right:8px;margin:0}
+@media (max-width:720px){
+ .app{display:block}
+ .app .nv-m{display:flex}.app .nv-d{display:none}
+ .app .nv-lbl.nv-m{display:block}
+ .app p.nv-note.nv-m{display:block}
+ .app div.nv-m{display:block}
+ .app .nv-bar.nv-m{display:flex}
+ .app .nv-big.nv-m{display:flex}
+ .nv-more{display:flex}
+ .mast-btns #btnAyuda,.mast-btns #btnNotas,.mast-btns #btnArch{display:none}
+ .nv-lists{grid-template-columns:1fr}
+ .nv-opt{min-height:68px;padding:10px 14px}.nv-opt .tx{font-size:18px}.nv-opt .tx small{font-size:13.5px}.nv-opt .ic{font-size:26px}.nv-opt .nv-n{min-width:40px;height:34px;font-size:18px}
+ .nv-opt.dash{min-height:58px}.nv-opt.dash .tx{font-size:17px}
+ .nv-svc{min-height:66px;font-size:21px}
+ .nv-side{position:static}
+ .app[data-screen="inicio"] .nv-side,.app[data-screen="inicio"] .nv-lista{display:none}
+ .app[data-screen="servicios"] .nv-main,.app[data-screen="lista"] .nv-side,.app[data-screen="lista"] .nv-inicio{display:none}
+ .app[data-screen="servicios"] .nv-main{display:none}
+ .nv-otras{grid-template-columns:1fr}
+ .nv-area select{width:100%}
+}
+@media (max-width:640px){.subrow .progs{flex-wrap:nowrap;overflow-x:auto;margin-inline:-14px;padding-inline:14px;scrollbar-width:none}.subrow .pbtn{flex:none;white-space:nowrap}body{padding-inline:14px}.mast{margin-inline:-14px;padding:12px 14px}.panel-svc .grid{flex-wrap:nowrap;overflow-x:auto;margin-inline:-14px;padding-inline:14px;scrollbar-width:none}.svc-btn{flex:none;white-space:nowrap}.tabs{flex-wrap:nowrap;overflow-x:auto;margin-inline:-14px;padding-inline:14px;scrollbar-width:none}.tab{flex:none}.mast-btns .hbtn{padding:8px 11px;font-size:14px}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+</style>
+</head>
+<body>
+<script id="uveh-app">
+(function(){function boot(){
+const _F='https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400..800;1,500..800&display=swap';
+const _X='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+const SHELL=`<header class="mast"><div class="mast-in">
+  <div class="brand"><img class="logo" alt="Unidad de Vigilancia Epidemiológica, HAEV" src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCACoAKgDASIAAhEBAxEB/8QAHQAAAgICAwEAAAAAAAAAAAAAAAgGBwQFAQMJAv/EAFYQAAEDAwIDBQMFCAwKCwEAAAECAwQFBhEABwgSIRMiMUFRFDJhCRUzQnEWFyNScoGCkRhDU2Jjc4OhorG0tSQlKURVdHWSlaU0Nzg5RVSFssHC0vD/xAAZAQACAwEAAAAAAAAAAAAAAAAAAQIDBAX/xAAyEQACAQMBBQYFAwUAAAAAAAAAAQIDESExBBJBUWETIjJxodGRscHh8DNSgRQ0QnLx/9oADAMBAAIRAxEAPwD1T0aNGgA0aNGgA0aNfDrqWW1LWoIQkFRUo4AA8SToA+9ceGl+vbjTsijVt63LQjVLc67UEpFItRgyUpVnwcf+jQB5nJx6are+tzN6JUVMy8r1snh5obxy1FccTU6w4g+QCjy83wQCdOxo7CSW9N7q6+2o5ClpQkqUQEgZJPgBqL1TdSzKGpSajdtCp6k+IlVNhsj9ahpJIthW9fbqJbtP3r35dWro9U3V0mkO/EB1TI5fsBGpzTth5jDAbpPC/tvQ0fj1+tokOgepLcdZ/paCN6C/yb8l9xhxxFbWF7svvj2rz+GPnmP/APrW9pe6Nm1tSU067KHUFK8BFqTLhP6laWdexN3TIqHFbRbDuNKOEJ/DkK+AV7PgnWgqvDC4+Vmr8L9gVU9cO21cyoaz9gWy3/XowPe2d/u+CHdStK0hSSCkjII8CNc5158ube0DbwqkNU7e7Y11o96TTZC6xSm/ieyU8Cn7QBqe2LufvI3HVJsq+bI4g6Owcuwy4ml1ltI64IT3eb8tI66LAoU54hNX5PH29RytGqCsTjJs2vVxq27uh1LbG714T8z3Wz7OHFejT/0bnw6gn01fTa0uJCkkEEZBBzkaRCdOdN2mrH3o0aNBWGjRo0AGjRo0AGjRo0AGjXGqo3030a2rYp1Go1MXdO4FdKmqJbcZWFvqHvPOq/a2EeKlnHhgdfAJRi5vdibHejfu0diqEifcs/llSSUQKVFSXZk93ybabHUknAycAZGTpVdwqreG6EaLUd665O2+s2rHlpO1lr8z1crYyCEPcg5znAyBgDz5PHWbbtr1yBubIWhcLcniJltJVUq3MSVUOyI6hlKEgfXAJ5W099fiSlOSZrGip2osp3crbuC1vncq5ymbmuJ6YF1J+O0opkIhhIKEhCgQGEEJAH1zqRZKtGhijl/u9l9Totfb+4aVaj0dtVL4dNvY0ZyY5SqIWnrgkR208zjsiSeZLWE9TyBxYzgqB1C6dujtvttZlRviw9tam/UacqFU5tevaA8qbUqQ68EPTIsl1SluFKTzcuUgDqU41W9v3FM3ioNw3BTZ1U3EqVmXDJjuICSqdVLYq6OR6NyYz2jRKsI+qpojw1Kqnw+HbGRbM3dq+rSoFtUGnP0JFX53zVa/S3GlsoiOx1nkQUtrAJbSpXMlJ640WOY6kpve16kwrm/12QNp+JiNWrhLlated2dFqMZCI60QpbSDEU3yYyQlRIV1JOqVq27d131I2mp1JrM2fuFZlTqsBK57Tsd2uR/ZQ/FU604EqxJYbcbJUPeBPnqz6PZlp3XIpM2x9hLj3KmQIUOnMXTfcj5rhutxk8jLpS7guEJA7wZycDV1fcxxC3BUDUHJG2VoPLABcj06VVJQABwFOKU0DjJ0hbsp8RJ7AlWdPs6xhu2itMWGxZVUYojUVL4eFS+c3OZLQR/nQaKAgHVgXDvBOtCs7u0Kh1muRa3clYo9v0+StL0mo06GxTW1y5ZabCldohCwFFKQedefI6aU7ab8KKM7t21ypIUEfcaMA+o/wjWKm0OIGgVD2+PVdtbrfTk80ykSaZIOcZw62tzBOPTTuPs5JWz+fyRKj8RtUs/gFpO5L8r5yuhukoisuTgpxUmf2xjp5x0KiVDJHicHULre4dh3latt1/cizKXcFfrUqQimVvbFEkVFtmMz2kmQrIakNFlWUqRlePHr4a2+4LL8ix49qbkbKXJattwKkKuzVttZ6Z8diUFqX7QW2wl1OFrUsgtqGTnGdd9mbOWFxHXAmvHd+q3y1TaH8yxkxJhp9WhKU4pUlyR2fIrmcCwhQU2BhPXJ66Q+9omZ1Rs2tXRYkJ+mTaXxFbbVGKicxRLmLbVaajrzyuRpeEhxXQgB1KFZSRz51BtupN07brnVDY2uVG7KFS1ZrW0F4KU1V6WPMRyvvJ88eKVdMFetBRY1et27/mC12nNvr0u94UukiYgB21bQpiikvqSs453lpWoBXvc2SfPUrpe6li7v2NaVa3GuaLZO4r9WnUm2L5ow9kelojuciZfXKQw4cJU24S0VHAxnoGiltUqXd1XJ6fZjQ7Kb82tvpb659AkrZnRVdlUaNNT2U2nveBbebPUdc4PgcdD5asbSS1q0alUN0Kc1XpsfbnfVttQoF70lvlo93tpGexfa8OfAHOyrvAElBUMAMBshvgdxHKjbVyU0WvuNQgEViguLyMfVkx1ftsdfilQ8M4PXGQ1yjGcd+lpxXFfbqW3o1wPDXOkUBo0aNABo0a+HHEtoUpSgkAZJJwBoAr3fbealbF7fTLkqSFzJBUmLTqYx1eny19GmGx6k+J8gCdLPaNEvemXNKie2tTOIK+YyZdcq5R2kay6OT3G0J8Of6rbf11gqPdSScSqblNbk3vWN7J8NdatW05pt3bqgD/xmsOK7MyQPPK8JScd1KSr6p1JKtdNY4aWbataLMokndjcKU7Uazdd1KdZpftKU/Rdokdcd1lloEYSnmPj1ZbWmqEeyWr8X0XuR28btj2hSr52Y2+2/qVw0iiQS7ds0Vkwq9OMhJLsqKCOeS59ZTh7pPcHTprr4R6pubRJECmU9tVxWK5HiSYl21J5MSksUJCFcjbEVtIKZxVzh0qJAKMqOMEzeBa0Xi6o9RRecCZttunY1RNKm1e25nK40lSEuKSy/9Zh1peeVXuk5+3UbjbicOLtk0ba9W7EWgWfRVIZmUSiPLcTUGW/82dfQhSuQqBKwhQKiTk6ZzdHvt44cDZ0y5H9xryuZvh4tykUCPVJARcO6UmFmM66jIKYbXT2pwde/0bBJJyTnVq7bcLtm2HVPn+oNyb0vNzq9c9zOCZMUrx/B83dZTnwS2Bj46q935Qnh7sCjxqbRau+/AhNBqPDo1HdS22hIwEoCkoSB+fVZ1v5USbdkhVO2t2tq9xT1nDbs3mWPt7JgKP61DRZsO1pRy3dj9nlBwep0vW//ABx7bbEMSYrtTRclytg8tEpTiVrSry7Zzqlofbk/A6WiTYPGDxQpLdyVJO2trv554pX7EOQ+RaaKnl/YtQGsFnb/AIYuDj/C7qrA3YvyP30U1pKH22nR/ApJbb6+bylH0GdKwp1ptXS3Vzfsav8AZ58R+Df33BtnbztM9n8zvey9nn/zXvfp45c+Xlpt9geOfbXfVmNERU021crgAVRau4ltalfwLnRDo+whX70a0w4uXTwd/fn+5WPydt2PzD7SeTsfbPZ+XtOXx5Ovu4z0xjS5rsThf4wyZNs1b70t+SO8unOhDDTrp9GVHsnOvm0pJ+GdPBWpTptbs96/B/Q9LO6r4H9Wqs3R4arI3QnIq8iA7Q7qZ6xrmoLphVJhXr2qMc4/erCgfTSaxNr+L7hfRy2lWm9xrYYAKIYc9sHJ6Bh4h1H2NrOpBRflQanZ8lNO3U2qqtvz0nDjsLmb/P2UgJP6lnStcudeOlRWJlufRXbXYhUjiLtuJuTYMdwJh7jU+MpmXTgTjlqDbRCkJOcF1s8h+snVf13a2Fthd1Sva5WF3NaUxluDbhtiOzLplWpbwDbVAEJQJZUokLS+hRBwtRUDkG4KT8pBsPdEUszqxPpzT6Chxip0l1SSkjBSrkC0kEdD5a0e0u7PDpYVYrNMtrdyMxalfJLdpTStuDBeXnnVHWtCVMJVk5RzcoJ6Y0ZI3pyeJJkA2y4gbe3RtWu2lvbUaJS6XVa0zSrUoNESpyXS1NYaS4261lSA24EhDxwSpKyMpONS27LPu2rXZAt2oVZFO33tJhybZl4lIbZuqnp+kjSEjoXAO6635FQWO6o6gm6WxLnDNcsu7rMp1Ni0RmHz0i45TAVT7Wj4Slx5SOZTk2e6peGic9D0/ezmxVv7mWbQNrq/BvG2L4jw3Lms68bsdZdmvPsuAqeKWyVMjLgBYXnLSyCTjTLKNWdGafH59H5jIcP290HfCxxU0xVUmuwHlQK1RXvpqfMR0W2oeOM9UnzHxB1Zukjbvx60ajG33iUtVIqESWLa3YtyPkhlaClAnJT5lslKwr6zTg+J068OWzOisyI7qH2HUBxt1tXMlaSMgg+YIIOonQqRjZVIeF+nQ7tGjRoKQ0vXGhfdVo+3lNse2XCi7r/nJt+nqT4str/6Q99iWyRny5gdMIfDSc3VekWfxM7l7iVAJk0HZ22VRYaM91VRfbLrv6XLyt/q0zRQspOpLSKv7epv9rLOoj25rMSKpqLt3szCFGp6n1cjL1XW0DLkrUemWmlBGT4KecOdUNek/cy475+99Vr6oV60G86y+mkSq3Bizrbfj8i3A0h5tQeZlNnkQGUqJPMFJVqbbuUKJtzwr2NZtyVk0GoV2Smu1qpVCjyJ1KmSyv2l+NPWz3m23HHEjPXKW8eGurhTsti496Pujpdn2vbdpxKUX6g7alWbqNDqVQDqfZZEdrxjOto7UnmCVAHHrpnKm3UlZvLyyebi7VM8OvAlflFpDpYqpo70ioTGXluKdku8iXSHF98pCe4nm6hCUjSm8InD5tp95G596t2WHqrbdJfcjx6Uzz8mGylKlqQggrUpa0pSnISMEnx6MNft01Xc3hO4hNwJchaqHXlvMUCOSeVunxVJYQ4M/uq0ur6eo1Uu2/X5KTcDH+kJP9rY0IpqKLqJ20i7HUeLPhVtJRet7YgzZDfVC5lPipGR8XFrI/VqwajxScQc2hML234eU23SZTSXo0lbHtHM2pPMlSUILaeoIPXOvOzbqwp+516U+2abJhwpc3tSJM9wtsMpbaW6ta1AEgBCFHoD4aZ25OHyPcdl0inUCJa9vVNtLJcrkWoXDIVLSEYP4JcXs0hZIVkeHl002jNSqVasW16YKtu3iA3z4hayugSK7X61IfUU/MNDZU02eU4I7FkDIB8SrPxOuim8Jl81rYhzdWlMxahRIz0lE6nsqUJsVLLhQ44UEYWkEEnlOQOuOh16HcAWxP3hGb+oFe9hdvhubHXJlRCVJVBWwlTHIpSUq5CvtgenvIPoNU3udR96eCfZSchm+rOk2vLqb7TFJ+a1uyn1SnFrcSFLwCAkqJ9AD8NF+Q3s/c36t3r/AAdCcH5I4enbn+9NJVs/tDW977zbte336cxUVsuSAqqShHaKUYyAog5V1GAAT4nwBOnVQAPkjAAAAHz0/wDVNL3wa7M0ncS/11W7qZcq7WprReZlUWjuzWnZaVp5WnOVpxJTylRKSCDjB8dBGpDfnTj0Rf22nDzxXbSJabtvcahsQWzlNPmVz2uLj07NxtQA/JxrUtfKa3bRJ823NxbCtm7jAkORJLkF3kStSFFKinmDjahkHBGAdVTxtbT02x72iVy0INyN25UY4Mp6p0Z2nsMSgrl7Nsdi0gBSQk4A8c+OdUfE2vuWbtvPv1imOLtWDPbpj84eCH1p5gMeOPdBPgCpI89PUjUqTpScKd8dbjnI4teFe7Fdpcew/sEhZytcSnxVjJ+KFoJ/VqN8VvD/ALY1HYeh73bQxpFHt+ZIRGl0p/nCCFrLQWlCyS2tLieVSQSkg5Hh1SzGn8rgz8kvRv8AabeP+JK0WsFOo68ZKaWFcY/hssamb28CdkWxdEmQ4xUKaW0vtPcshosyVllbajnq2UII6Ed0A9NVntzbV7Vjfy8m7Yr8pFWtp9ql3Dft/uNSp6Y+Q4I8GC3ytssuAA9qr3h1yCMa7NunKxavAltDuJQlOrl2M8usyobX+dwC++1MaI/iXFLHxRqbcVFhm9KrZl6RLQk7gbeORXZNbo9FmtwnZ6y2gw5EhZUjtmUI5xhSsJ5s4xnUDpW7qfFJEp3PgUuyd2qPdxEebY24bSLTuhpKkrYU8sKTBlEg4OSVx1K9Fo9NZ3CZW5ttR7q2hrclcirWDMESE++rLkqlOgrhufHlTls/kDVC8PW1dmbrWrufRIlWoVv1KtNu/Nlk29X0zRQmeRHIpwJUUqWJDaHu7kNqzgjmI1ILd3Dfj7qbE7rycxXLygu2NdLQGOWotKIQV+hD7bifs0HR2V9pGVPnlea90O/o1wOo9NGkVnxIeRHZW64rlbQkqUo+QAydeftk05d07D0l6YCZm8m5qJMlPjzwUSVOqSfVPZRCP0tOpvHVlUDaW9akhXKuHRZr6SPIpYWR/PpYtr6c3Fj8G9FA/BNUmfU1DyLiacBn7cvq00XPGzy6tIjHG/uvWbQ3NZRQEX/bdSYhNR0V9iR2dtupVlfK80pl1LvLzYUcA+XlrZ2fcEmy+Crce+Gptk1K5auy5Ebq9jwPZGZD6gmM0HsIQFPIcdV1CQOvrnXbvGtz74tzvoi8RdFeXLUlMy1h7RSnClISFsM5I7M8ucYGep89bG8Bddb4X9nKTfMRcK5q7eFGjVFh1lLDriRMU6FOto6JcU20hSx+MTpnLzvSbJjxDWSxtvwD3La0ZIS1SLWahDlHvFAbClfnVk/n0sO2/T5KXcD/AGhJ/tcfTk8bIP7FLc3H+iHP/enSbbcf91Lf/wDtCT/a2NC0IVsVH/qxWuF//rspX+oVX+7ZWvVZzcuNU7Mh2yKjU7YmwlU6IzXIDyVdi981/OAdW2ffaCWlJW2c84OPPI8gtpb9a2y3DpdyP0354jRQ+29BD5YLzTrLjK0hYB5TyuEg4PUDTe7UcT1W3iuelWba9t3XOmYHL7RckENRmktFkuurNPOEpbUUEnJIVyjOcabRm2SrGMd1vLGNQblrlPps+LaVZVU7daW9UrmpFeUZs2PIV2wFO5+cyGylYeEeSkBAAbTleDpZuPD5mr1g06twa3VLrWxXWI0WuVWcp1TsZ6n9uUpZCUNs4X0ISgKynvdRjVybx3bf3DZbKrkl0+rS6KtbTEuXQbshZZIAbZ7VKqclRTgJQkjIGAOnTSZ7+8TjO9Vrs0lmjVGM+urCrS6lVqoiY8+tMcR0IAQy0lKQkehJOhIu2mrFQcG8jIuKKfkiFKHQh1RH/EzpuNqtztt9rLJ2/sV2uU+hz1UWAWYKyUJSp1oFPOvHIlbiuYgLUCs5xnSivD/JCr+Liv7zOmRRtTUXdvrcvC2afEuJdVtmnRLjs+p8vslejojJ5OUqBDUlAJCFHuqGEqxgKES6ne6a5IuHfKjU+5NnL2p9UjNy4L1Gl9o08MpOGlKSfgQQCD5EDXjPbHEtckbh0qOykOkwZ1Nq8sSfam0LXMSVLQ4ptKE5CiVIGDjIBI9MehsSy6TuvbLVs2vuz7LRYcxp87f3rCRJkxHWlBXsMpK3ESFMAjHZqKhgDC1Jxq0rK2tvi0KrCeZibYUqA04ntzRrafjPdlnvBC+2wk4zgnIHx0Jjq03VaadjyRpnC7uvU6tRoCrDrNOdq8gRoTtUjmIy64UKWE87mACUoUevppub8osu2fksINJqDXYT4VZ9mfbCgrlcRVHEqGR0OCk9Rpot596LAevTbalt3pQF1CHdTT0mOmpNFTKBFkpKl97CQCpI6+ZGqA4kZrMz5POXIjPNyI8i6n1tutqCkLSaxIIUCOhBHUHUr3ZmVGFKE3F3wy++CGlRa7wXWLTZrSX4cymSY77SvBba33kqB+0E6glkWjJ3G4JLy2zqdVj0qbakidbkifOKlMpbgvhxovY73ZqZS2FY68pONWLwE/8AZD24/wBSe/tLuvjZKKKTxA8QdBVyriP1CmVlDKxlBMmHyuZHoSz11E2RV4x6oW/Ze+rFkbjbeSJFy2nHrdLrcz2Smbb0J99l1mSyhhiO5KSwgBpslxSivmz3CT0J1vd+aC/StvuIShQVcku0bkp9+0nkHeaS+EPOFHwDiJB/OdY1Nb3Tb20r19Q7xvmHuHRqsYIsaFRWUUlbxeCWmG2ktgOxygpy8lRwCSTkatfdSh/O+8N/0t5pLTtybUOF9lJyC8w+6kfbjt8Z+Ggu2STp1YSfNfAZW1K6zdFsUisxyFMVGGzLbKfApcQFj+vRqsODuqLq/C9tlJcUVL+Y47ZJ8e4Cj/66NBfUW5Nx5M3XEmy4/wAPu5LbZwtVuz8H+QXqirEeakXHwgzG+jDttVFhJ/ffNzBx/RVpor7ov3SWTcFJxzCfT5EXHrztKT/86STaS4F/eB4WrpK+9bl0i3pxP1EvCRD6/pFr9Y0cCcv7ZvlJfnoPvjI1QfFd+Bm7MSVHlYY3DpfaH8pDyU/zqGr8T4DS/wDHJDfb2FlXBG6v2vVqbcAA8eWPKQpf9Aq0LUy1PCzb8Z8VyZwr7mtNDK/mZ5f5kkKP8wOlp4PrStrcT5P25Lfu2tG37ckVSamfU0uoa9nQl1pwK5lgpA6J8R56czcqiNbi7RXNSoqkvt1qjSWWFg5Cu1ZVyEf7w0g3AEz98jhX3s2zeRzy+R1bbJ97mfilI6fB1jRwMtT9ZdUzqPB3wr9c78H4/wCOIP8A+NWlSLK4fqHAjQ4e79nIZjtJZQpdOoa3ClIwOZZYKlHp1JJJPXXlYhHI4kPoUnBw4kDCh6jr56yqlS1QOydQpMiG+CWZCBgLA8QR9VQ80nqPiCCZ2ObHaVDMYJHqui2di560x07vWfLWv3WU0mhuKV9iRHOdV9e/Czwz3HcTtSrG8kakzZCU5jw5FPp7RCRjKWUNJSPiQOp0pGy3MzYlaYW4qAqfOaVGep6y3UJPZpKXENqQ62vskc4KgCrJUnudOYSHcGOhraq4IKH58uUh2LKUxcMhxchllK+89HDrzhwCpKFYSjIcHeVjGkanUU4bzinxPQdezO0o4ORYqr9xtmV5+6YzmOp9r7THa8vZ/Sdzw+Hjr4tC/rBsq2aZQadxLwXKfTo6Isf2x6mOuJbSMJSVlvKsAAdeuANLzLTyfJGsZHTtwf8Amh1U1sbN27thToVo1en2xf2424dJQmlqcqQTFtkOZJdfUO6TyfhErSebLZSBg5UrFjquMlupaL/g3+433md1oUiNc++ltVFx5vs/bFR6P7U0PVt4slSCPIg5HlqtXNhdhHaMaSvihrqqWehhKutgskenJjH5tLpt5wVXNchdXHo8646rQ7tbotZowb9iiOQccxlNy1kFSVAHqhJISpJ8xrV78cL8+ybrr7kOiybUjyrkTRbWtqeVyJVYQcAuxnvBaQSk4V174GSRp4KpVKjW9KCL6/Yd8Knu/f2HX6vzvB6/m7PU44tbStfbn5Pii2/Z9aNwW21U4YgVMuod9oSqQ44VcyAEkZ5h0HlpL1QLU2t2zXDrKk3DdVZXMi1e1HIpiTqDKj86IqzIKSrHOoqU0MBzCOuEkFmeOpr71vCBsltwgFEsoZffbxg8zEbK+n8a/o4kU4qnO0UscOo3XArEVB4SttW1Zyqml3r6LecUP69de3BCuLrefk6AUe3+f8rkkY/mxqwNibVXZGylj0FxHI9T6LEYdRjwWGk8w/3idVzw7Fy4N6d/boUAY71wxqHHX6phRUpX/TcV+rUTpJWUI/mhQ9O4fd7JO4t3VbbyJJ2epU6p9rCVULjVIZSgdHVGAlLiFh1wKcHMUEc+NXjc7b7PE/RW5j6JD7W29S9qcCeUOK9qjgqx5AkKOPLTE46aVndm4mYO9e6dZ5gG7Y2uU04s/UdkPvuJGfUhlP69Isp07TilxZL+BgK/Yobdc2QfYnCM+ntDuP5saNbrhFoy6Fwy7Zw3UFtwUKM4pJ8crTz/AP20aZpr2dWb6v5lunw0hFFsiWbI4mdn4QU1WLerJuy3mUjvcqymWwUfyjQT+lp9zpWd81jZTih263QADNv3I2bPuBwDCUqWeeI6s+HRXdz6J0InSW/GdL9y9Vn3L+2xviHuXt5bl1QFBUWsQGZqAPq86AVJPxCsg/Eaz70taFe9pVm36kgOU+qw3YT6SM5Q4gpP9efzapTh3cO1m4N77OyyWosKQu4baCySHKZKcKltJz+4PlaSPILTphD4aRii96OSiuDy6ZtR2jbtOuOc10WPLctmpoJ6lUc4Zc+xbPZqB8+ulF2cfHC98otctoysRLfut1xmLzqwjlfV7RFP5nOdr7TpoN1Crh93shbqtAt2XciGKJd4GeWI4Dyw6goeQSVdks+SVJPlqpvlNdl5Ffs6i7r26FJrNrqSJb0fqv2QrC0PAjx7JzCs/irUfLUkZaiaipLWPyEd4yNpnNneIa66QhlTVMmyDVacSMBUd8leB+SvnR+jqurAuWBblfYcrVOTWKGtREmC4nmSrKSAsJyMqTnyKSQSApJIUH23tozPHPwn0Pcy346HtwLTbW1VIDAy44EgGS0ABk5wHmx5gkDqdU1B2n2Svfh022h0qsopG7lZcWtwrU64uWUOLS8ytP0aM8oDWSnrjJwTqSZzZUn2jlB41RsLR3noextIm2HEsGlX7RJ0x2qmkXKjtAHe62W4jykHtClLYzzIyVFSErWUEnBr1Wol0bA35cNDtd22IlTYK0w2u2LDIE1oBALcVmPgeCQpbqwB9U5OoWaHMNh0t676TV6XbciWukQazW21NuQZbKRyNOPcgy1y91DvKrsAHglJPUbKJblZrli1KgMtUmRWZiFJfqsh7sOwpgdStcuSAlSW1LcQCAV8xR1KOYjIXKUmnHhYvicP8kdE/jU/3odKpw47a1C7KnUa6i2rdumg09ximVCDcNURBbBmFTaHEKUpPfRyqIIOQcYBPg1lTHJ8khDSFBWHUjmT4H/Gh6jSKbdXLTbUuyHUKvb0G6qanmS5Sqk4tthxRSQhaik5BQohQ8uh9dBXVajODfJHv7bNvQbUt2mUSmtFmnU2M1DjNKWVlDTaQhA5iSTgAdT11BeJCmNS9mLtlCTLpsyn01+ZFqdNhplTIbiEE9owk/tmAQCCD1OCPHVH7bcYzlpQTal7hF2XHQbWXcNZuG2n4rkBxIJKWmgFp5l8hQnoAObyx11W3FXxevXDY1uD2G5LMsS66OatTLhpzyWao7MZWVJiqbzhDJIRzLzgpUCCR01Cx1JVoKAsm0O1kbfDjGptLgzK/XKIqY1WqjULkj9lOeZbQh11TyeuCtzCAeuQoHrq5+Ip39lD8oDa1hwyZNEt55qFL7M5SlLZ9omK+HgG/tAGrDsi5atw57EXfv8AblOIlbrXy20iFGdbDakjswmIwEY7owO1WPJKQD1GuPkwdlprNMr+8FxJW9VbhW5Gp7z476me05n3/wCUdGAfRs+updTFCnlU+bu/LgOxfd4QNvLHrly1JYagUiE9OeJOO62gqwPicAD7dVxwg2jMtXYa336qhTddrynrgqQc972iY4X1A/YlaU/o6jPEK8d59wra2Up6y7T31tV673Gz0ZpjSwpqOog9FSHUpGPxUqPhpi2W0tNJQhIQlIwEpGAB6DUTpLvSvyOT0Bx46QLeytSLg2t3yrMIhczcC84llUgI955mMW4x5fgVJkHTf787kDafaa5blQntZsSKUQWB4vy3CG47YHmVOLQNLFbe3xc3p2P2jSRLjbc0lV2XE6k5C6k6MN8x8yXVrX9h0I2bN+spcI5+Gg5lvUdm3qBTaXHASxBjNxWwPAJQgJH8w0a2AGANGkUPJzqB74bUU/eva64LPqJDaKjHKWZGOsd9PeadHxSsJP2ZHnqea40EoycWpLVCRW7clz7lbZ02448U/f32anLh1SmE4cqbCU8r7J9UyGU8yT+6IGPHTdbd37R9zrKo90UGSJVKqcdL7Kz0UnPihQ8lJIKVDyII1QPEhaVW2fv6Fv3ZcJ2a5CYEK8KNGHWo00H6dI83Wehz6AeSTnBo140vY6uMbhW7LRP2Ivt5Mya5H6t2/UHSB7Xge7HeV3XR+1uDJxk6ZOvFJ9tDwy16P89Bnbkt2m3ZQahRqvDaqFLnsLjSorycodbUCFJI+IOlvsauSNiK43sxuO6qp2TVkrh2lclQPM3JYUCPmuWo9A8lJKUKP0icDxGmfYfbksocbWlxtYCkrSchQPgQfMa0F/7fW/udak+3LlpjNWpE1HK7HeHn5KSR1SoHqFDBB6jSM0o3ytTzZkt1/wCTX4j1SGWpVT2nuZeOVPe5mAc8np7QxzdM++g/Hp38WGw66DSBvHs0INasiqKNWd9jjJeXSHlgc8qL5oQrA5xjLahnA8U3vuhZ1VsGyZ9jbrwKhuZsy8AIl2RWy7WbfwD2apSUjmcS35SEAkDosEE6XGyL6vfgJrsd5qS3uRsZca+2iVGAsLjSEq6c7SuqWZGMhTau6vB+0T6nNnFQvF+H5fYpG7uLi8744f6ZtRWWoU+mwXmVoq7/ADuTVttElpsqKsd3OObxKQB6k1vG3Eq8CwJFnwltwaRMle1zvZwUuTVDHIl056oRjISABnqc6dzc/g4sTiXt1/cbh5q8FEh49pNth1QZbDp6lCUnrGcz9RXcP1SBpF7wsmv7fV96iXLR5lDqrJ78ScyW149Rnoofvk5B9dNMwVo1IZbuufQfOpH/ACR0A+rqP7zOko2r29gbk1Gs0uRcTNCqbdOcfpDDzJWanMCkpbiJII5VL5iQo9Bj0ydOrVFY+SRpuP3dA/5mrSHWdZNf3BrzNFtqjza5VXj3YkFkuLx6nHRI+JwPjoRbW8UMXwjJ3DqVFq91PyKFRhQYCWmmTCw3hLqGwh1QLfdIUpJOR45ydNxwZ8K7dTp8feDdt/5v2/oLJl02JVlq7OQlB5g6pKvdYSeoSB+EVjAI96R7YcGVj8OFvsbi8Q9YghbP4SHa7a+2bU6OoQsDrIX/AAaO4PrEjWouG7tzvlHr4RbVrwXLT2rpbye2U4PwLQHurfKejr2PcZT0T+tWle5KFLs5b0syei9zrqEm4vlKeJBmLERKpe19uq6rUMdhGKu8s+XtD/LgD6qR+9OXy3Z3QovDrYFIpFFpIn1uUEUm2LWgj8JMeCQlttIHg2kYK1noAD5nVdUW5bM4YaBD2j2lobt736E866VCWkrDysBUqpSB3WE+BOeuAEpTjGp9s9sNKt24ZN+37U27r3MntFpyoJQUxaYwevskJs/RtjzV7yz1PjjUWzpU4OKee89WZ3D1tDM21t6fU7kmIq9/XJI+crhqaPdcfIwllv0ZaT3ED0BPnq2CcDJ0AAaq/fvdx7bK3IkOixE1i+K+983W9RwesmUR76/Rlod9avAJGPEjSNOIRK03cu2nX1vK3DqD4bsHapr7p7kkk/g3aiEEw43oS2nmeI9S2PHWVwXW1Uarb9zbs3DHUxcG4dQNTQ06O9Hp6cpiNdeoHJlX6Q1TdbsJV23DQeGyiVJ2qgSBc259yo96U6pYcU0pXkpxfKAk+CQgfVOnvgw2KfDYixmkR4zDaWmmWxhKEJGAkDyAAA02bN10aNpeKeX0XD4ncNGudGkZg0aNGgDrdZQ82pC0haFApKVDIIPiCNJ3d1su8HVcqs5mmLr/AA+XK6oVuidn2/3PPO91bqGznmjLzhSfL8wy5GsebCj1CG/FlMNyYzyFNOsvIC0OIIwUqSehBHQg6C6nU3Lpq6eq/OIrVo3m5wws08O1Jy59gqpyLo1yNOGSq3Qs9xiQsZK4nXCHfFv3VdBppoc1ioRmZEZ5uRHeQHG3WlBSHEkZCkkdCCOoI0p1X23uDhKqFWqln0mTeuzFRDi6vZCR2z9I5vpHoiFZ7RkjPMyfL1xkfO3cuZY9AavDYaYncPaySorlWGX8S6Wo9V+wLWcoI65iudPxCM6ZCpSdNb8Mw+Xn+eQ3CkBQIIyDqvlbEWag1hhijx2KPWuY1SiBtKqfMUfFxTBHKlzwytASTjrnAIytrd5rV3gpLsy3KmH34yuzm02SgsTYLnm2+wrC21D4jB8idTcqwknSKsSVxBdyPk/7s2ouZd78O9zyaJUUZUqgyZPLzJzns23VZStP8G8CP32ovM4x6TV20WHxT7SKamNdwVBMA5B8O0DSiFJ/KYWR6DTXbb8Qc++d/N1LMchQGLcs5DCW6iHSJC3lJy6lSD0KUkL7wxjABznXFG3a2q4i9laxeFcpLT1kU9yQzKXcsFBQgNAc60Dvd3qMFPXPTx0/MjPYqlPMFbTqs5RVUi+eFJzhyj2E5fEM2E24HU04T3vbsh4vchTjtvfz0x4dM+eqka40qNQml2Jwu7TFcp09mJvzeSpR8OfsU5Wv8p5YHqNWg3wp8KRtQ7tdgF2OpHb9qahK+b0p5+z+j98Dn6cp8/LVg2RxJbCWfadbTt6GXKdQoBqEuHbVEdSr2dKkoUsZQkL5SsE9SQMk9AdO3Igtm2ifC1sYXp0F7tbgTv8A3Vqy7+4gK3U61MA5mrZpb6XJTg8Q0XMhphHh3Wz081DTA0LYq/7hpTFAdqkPZ3bpgcjFq2Pgz3W/MPziO4pX1uyBJ/HPjqQ3/wAUlPoVA2sq9s05FywL/q0emw3zI7EMIcGStQwSSnvAo6YIIz01eyeo0if9KqSV1qRLbXaa09o6CKRadGj0iIVc7qmwVOyF+bjrisqcWfxlEnUv1wogDxxqqN1+IGl2BVWLZo0J+8twJqcwrXpRBfI/dZC/djsjzcXj4A6RJtRRId2d2qJtBa66xWFOvOOOJjQabDR2kuoSVfRx2Gx1WtR/MBknAGlTve9rh2vqqLkq8Nq4eI2+Gfm+27XjK7Zm24Sj0QPLp7zjhxzrSR7iSdZdw3JU7Fv+PKqKY+6vElVWFNUm3qdn5rtaOsd4jP0aAOq3l4W5j6qdXFw/cNSdtanPvW76l9126FaTmpV14dxlJ/aIyT7jY6DyJAHgMDT0NVOmoWq1l5Ln1fQ2vDLsGxsVZDjMyUaxd1YeNQr9ZcPMuXKV1IBPXkTkhP5z4qOrh1wOg1zpFU5yqScpasNGjRoIBo0aNABo0aNAHyUg6oW++GV2Ddcm+dpqy3YN6P8AWYx2PaUqr9clMqOPAn90RhQ8ep1fmuMZ0FkJypu8RLrvuy1K3dMFG8FDqWxu6TQ7KBe9GkFMSVjHRuakFDiD+4yEnHhpgtoHNwGUSY91Vu3rvoYaQ5TLkpCSw/Myo5D7IKmwQMHnbVg590an1ftyl3TSZFLrFOi1WmyE8r0SYyl1pwehSoEHS+zeDVqzZrlS2gvit7YS1KLiqYw57bSXVeICorp7oz+KfsGgnu0Zu/hfxXuvUpC7uEydbOyu6183Rb8qr7sTarOqFMftqa+t5LTqkpbQnssFSMKUpSFJ8Bg6w7qoFZo212yXDxblEerdTmxmbjuenoeEQOR0L7dbC3VDlRzuEg834iRjrq+BffEht0oN17b2gblQGx3qhatR9ikqHqY7/TPwSca+U8bdBoyj9123W4NnSB0WudbzjzY/lGubpqWTpqpXecSzdWfSyxrgoOjGfF4beJraytUn7nahQXH6zDozj6HjFhySJCEJcR3VJSpCsKHTvDU14Ot201mLaVAuLd62bjZqdGTCjWXFoyW5LCw2MNuvpzzFKEKSoKxzZ1YyuO/h/kB9yZcaY630dk6JtFkpU4n8VWWuo+B1ho49OHqiJApdY7ZQ91FLob2T8BhsaYp9tUhKLpPLv6eRVK+H29dvN/rCsuj0KbV9qqddqbsptTbTzN0ltTa0vRXFE9EhzlUn4HPmdNXfvEjt/t3MFNn19qoXAvutUKioVPqDqvJIYa5lD7VYHx1R95cWNH3otmdb9B2Y3EvumSgkOpbguU5lwBQUAXuYKAyBn1GQeh187fbbb1zqYmPa9rWNw9UR44cEOKmo1ZaD5qIAb5viok6WupmrwrVd11Go25v6am9vzczcG5qG9VbiqsPh42+x36hVXmnrglI691pvq3GJH8Y4PIDUO2qauC7YUik7DWu7Ytozl81T3Pu1lb1Tqqj4usNuHneV44W4eUeQHhq27H4OLModcZuO7JVT3MuxB5hVrsf9pDav4Jj6Nv4dCR66vpKEoAAAAHQAeQ0jOnSpZj3pc3p/C9/gVzsxsLauyFHkR6HHdk1SavtalW6gvtp1Qd8St109T18EjCR5DVj41zo0imUpTe9J3YaNGjQRDRo0aADRo0aADRo0aADRo0aADXGjRoACkHy0co//AI6NGgDBn0Km1ROJkCLLGc4fYSv+sa+Ydu0qnqCotNhxlDwLMdCP6ho0aB3ZsMDQAAMAaNGgQY1zo0aADRo0aADRo0aADRo0aAP/2Q=="><div><h1>Boletín UVEH</h1><div class="fecha" id="fecha"></div><div class="estado" id="estado" hidden></div></div></div>
+  <div class="mast-btns"><button class="hbtn" id="btnRefresh" type="button">Actualizar</button><button class="hbtn" id="btnAyuda" type="button">¿Cómo se usa?</button><button class="hbtn" id="btnNotas" type="button">Notas de enfermería<span class="badge" id="notasBadge" hidden>0</span></button><button class="hbtn" id="btnArch" type="button">Cultivos adjuntos</button><button class="hbtn solid" id="btnLoad" type="button" hidden>Cargar RADAR del día</button><button class="hbtn" id="btnWA" type="button" hidden>Mensaje WhatsApp</button><input type="file" id="file" accept=".xlsx,.xls"></div>
+ </div></header>
+ <main class="wrap" style="margin-top:16px">
+  <div id="banner"></div>
+  <section class="ayuda" id="ayuda" hidden>
+   <h2>Cómo usar el boletín</h2>
+   <ol>
+    <li><b>Elige tu servicio</b> (por ejemplo Medicina Interna). La página lo recuerda para la próxima vez.</li>
+    <li>Después elige <b>qué quieres ver</b>. Empieza por <b>Pacientes por revisar</b>; las demás listas están en “Otras listas”.</li>
+    <li>Cada tarjeta dice <b>qué pasa</b> y <b>qué hay que hacer</b>. Toca “Ver más datos” si necesitas el cultivo, el dispositivo o el antibiótico.</li>
+    <li>Cuando termines con un paciente, toca <b>“✓ Ya lo revisé”</b>. Si no es una infección, toca <b>“✕ No es infección (descartar)”</b>. Lo verá todo el equipo.</li>
+   </ol>
+   <div><div class="q">Qué significa cada color</div><div class="leyenda"><span class="tag" style="background:var(--crit);color:#fff">Rojo · Urgente, revisar primero</span><span class="tag" style="background:var(--warn);color:#fff">Naranja · Revisar hoy</span><span class="tag" style="background:var(--info);color:#fff">Azul · Puede esperar al siguiente corte</span><span class="tag" style="background:var(--mut);color:#fff">Gris · Solo seguimiento</span></div></div>
+   <div><button class="btn primary" id="btnAyudaCerrar" type="button">Entendido</button></div>
+  </section>
+  <section class="ayuda" id="panelNotas" hidden>
+   <h2>Notas de enfermería</h2>
+   <p class="explica" style="margin:0">Lo que enfermería escribe aquí sobre un paciente (cultivo que llegó, catéter retirado, egreso, etc.) se guarda por separado. Revísalo y pásalo al Excel del día siguiente; cuando ya lo hayas pasado, márcalo como aplicado.</p>
+   <div id="notasBody"></div>
+   <div><button class="btn" id="btnNotasCerrar" type="button">Cerrar</button></div>
+  </section>
+  <section class="ayuda" id="panelArch" hidden>
+   <h2>Cultivos adjuntos</h2>
+   <p class="explica" style="margin:0">Todas las fotos y PDF de cultivos que se han adjuntado, incluso de pacientes que ya no aparecen en el RADAR.</p>
+   <div class="lote" id="loteBox"><button class="btn" id="btnLote" type="button" data-lote="abrir">📄 Subir cultivos del día (PDF del laboratorio con varias hojas)</button><div id="loteBody" hidden></div></div>
+   <input type="search" id="archQ" placeholder="Buscar por paciente, cama o servicio…" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font:inherit;background:var(--surface);color:var(--ink)">
+   <div id="archBody"></div>
+   <div><button class="btn" id="btnArchCerrar" type="button">Cerrar</button></div>
+  </section>
+  <div id="vacio" hidden></div>
+  <div id="contenido" style="display:flex;flex-direction:column;gap:18px">
+   <div class="app" id="app" data-screen="inicio">
+    <aside class="nv-side" id="nvSide">
+     <div class="nv-bar nv-m"><button class="nv-back" type="button" data-screen="inicio">‹ Atrás</button><div class="nv-ti">¿Qué servicio atiendes?</div></div>
+     <div class="nv-lbl nv-d">1 · Tu servicio</div>
+     <div id="svcGrid"></div>
+     <p class="nv-note nv-m">El número es cuántos pacientes faltan por revisar. En rojo cuando hay urgentes.</p>
+    </aside>
+    <div class="nv-main">
+     <section class="nv-inicio" id="nvInicio">
+      <div class="nv-lbl nv-m">1 · Tu servicio</div>
+      <button class="nv-big nv-m" id="btnSvcPick" type="button" data-screen="servicios"><span><span id="svcActual">Todos los servicios</span><small>Toca para cambiar</small></span><span>▾</span></button>
+      <div class="nv-lbl">2 · ¿Qué quieres ver?</div>
+      <div class="nv-lists" id="mainTabs"></div>
+      <div class="nv-otras" id="otrasPanel" hidden></div>
+      <div class="nv-m"><div class="nv-lbl" style="margin-top:6px">Más</div>
+       <div class="nv-more"><button type="button" data-go="btnNotas"><i>🗒️</i>Notas de enfermería<span class="badge" id="notasBadge2" hidden>0</span></button><button type="button" data-go="btnArch"><i>📎</i>Cultivos adjuntos</button><button type="button" data-go="btnAyuda"><i>❓</i>¿Cómo se usa?</button></div></div>
+     </section>
+     <section class="nv-lista" id="nvLista">
+      <div class="nv-bar nv-m"><button class="nv-back" type="button" data-screen="inicio">‹ Atrás</button><div class="nv-ti" id="nvTitulo"></div></div>
+      <div class="subrow" id="subRow" hidden></div>
+      <div id="vista" style="display:flex;flex-direction:column;gap:16px"></div>
+   <section id="secWA" hidden style="display:grid;gap:10px"><h2>Mensaje para WhatsApp</h2><p class="explica" style="margin:0">Incluye el servicio y la pestaña que estás viendo. Revísalo y cópialo.</p><textarea class="wa-box" id="waText" aria-label="Texto para WhatsApp"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="btnCopy" type="button">Copiar mensaje</button><button class="btn" id="btnCloseWA" type="button">Cerrar</button></div></section>
+     </section>
+    </div>
+   </div>
+   <div id="notaWrap"></div>
+  </div>
+  <footer>Registro operativo UVEH; no sustituye el expediente clínico. Si tienes dudas sobre un paciente, comunícate con la Unidad de Vigilancia Epidemiológica Hospitalaria.</footer>
+ </main><div class="toast" id="toast" hidden></div>`;
+document.body.insertAdjacentHTML('afterbegin',SHELL);
+
+const $=s=>document.querySelector(s);
+const norm=s=>String(s??'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const PRI={'inmediata':0,'hoy':1,'proximo corte':2,'seguimiento programado':3};
+const PRI_TXT=['Urgente · revisar primero','Revisar hoy','Puede esperar al siguiente corte','Solo seguimiento','Sin prioridad asignada'];
+let PUB=null;
+const VACIO=()=>({rows:[],cerrados:[],corte:null,nota:'',notasEnf:{},file:'',publicado:null,preview:false,empty:true});
+let STATE={...VACIO(),cargando:true};
+let CAN_WRITE=false,ART=null,notaFichaEditKey=null;
+let LOCAL=store.get('uveh_done',{})||{};   // marcas viejas / respaldo si no hay acceso a la hoja compartida
+let DONE={...LOCAL};                         // marcas efectivas de esta pantalla (se arma en aplicarMarcas)
+let MARCAS=null;                             // marcas compartidas (hoja 'marcas'); null = sin acceso o sin cargar
+let migrando=false;
+let NOTAS=[],EDITN=0,DELN=0;
+let ARCHIVOS=[];
+let FGRP=store.get('uveh_svc','')||'';
+let FSUB='';let SCREEN='inicio',OTRAS=false;
+let TAB=store.get('uveh_tab','foco')||'foco';
+let FPROG='',FEGR='';const OPEN={};let ATBVIEW='';
+
+/* ---------- Fechas ---------- */
+function toISO(v){
+  if(v==null||v==='')return null;
+  if(typeof v==='number'&&v>20000&&v<80000)return new Date(Date.UTC(1899,11,30)+Math.round(v)*86400000).toISOString().slice(0,10);
+  if(v instanceof Date&&!isNaN(v))return `${v.getFullYear()}-${String(v.getMonth()+1).padStart(2,'0')}-${String(v.getDate()).padStart(2,'0')}`;
+  const s=String(v).trim();let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return `${m[1]}-${m[2]}-${m[3]}`;
+  m=s.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);if(m){const y=m[3].length===2?'20'+m[3]:m[3];return `${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`}
+  return null;
+}
+const fmt=iso=>iso?`${iso.slice(8,10)}/${iso.slice(5,7)}`:'';
+const fmtL=iso=>iso?`${iso.slice(8,10)}/${iso.slice(5,7)}/${iso.slice(0,4)}`:'';
+const daysBetween=(a,b)=>Math.round((Date.parse(b)-Date.parse(a))/86400000);
+const DIAS=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const largo=iso=>{if(!iso)return'';const d=new Date(iso+'T12:00:00');return `${DIAS[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`};
+const hoyISO=()=>toISO(new Date());
+const hora=ts=>{if(!ts)return'';const d=new Date(ts);return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`};
+
+/* ---------- Lectura del Excel ---------- */
+const COLS={det:'fecha de deteccion',nombre:'nombre completo',exp:'expediente',edad:'edad',sexo:'sexo',cama:'cama actual',svc:'servicio actual',prev:'servicios/ubicaciones previas',ing:'fecha de ingreso',prog:'programa de vigilancia',motivo:'motivo de alerta',muestra:'tipo/sitio de muestra',res:'resultado',micro:'microorganismo',disp:'dispositivo',atb:'tratamiento',epi:'estado epidemiologico',notif:'estado de notificacion',oper:'estado operativo',pri:'prioridad',accion:'accion pendiente',resp:'responsable',obs:'observaciones',tipo:'tipo de iaas',rhove:'estado rhove',fcap:'fecha de captura rhove',fres:'fecha del resultado microbiologico',egreso:'fecha de egreso'};
+function mapRow(hdr,r){
+  const o={};for(const k in COLS){const i=hdr.findIndex(h=>norm(h).startsWith(COLS[k]));const v=i>=0?r[i]:null;if(v!=null&&v!=='')o[k]=v}
+  for(const k of ['det','ing','fcap','fres','egreso'])if(k in o)o[k]=toISO(o[k]);
+  for(const k in o){if(typeof o[k]==='string')o[k]=o[k].trim();if(o[k]==null||o[k]==='')delete o[k]}
+  o.id=[o.exp,o.nombre,o.prog,o.motivo].map(norm).join('|').slice(0,160);
+  return o;
+}
+function parseWorkbook(wb){
+  const name=wb.SheetNames.find(n=>norm(n).includes('radar activo'))||wb.SheetNames[0];
+  const aoa=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:true,defval:null});
+  const hi=aoa.findIndex(r=>r&&r.some(c=>norm(c)==='fecha de deteccion'));
+  if(hi<0)throw new Error('No encontré la fila de encabezados (“Fecha de detección”) en la hoja RADAR ACTIVO.');
+  const hdr=aoa[hi].map(c=>String(c??''));
+  const rows=aoa.slice(hi+1).filter(r=>r&&r.some(c=>c!=null&&String(c).trim()!=='')).map(r=>mapRow(hdr,r)).filter(o=>o.nombre||o.cama);
+  let corte=null;const title=aoa.slice(0,hi).flat().filter(Boolean).join(' ');
+  const m=title.match(/corte\s+(\d{1,2}\/\d{1,2}\/\d{4})/i);if(m)corte=toISO(m[1]);
+  let nota='';const rs=wb.SheetNames.find(n=>norm(n).includes('resumen'));
+  if(rs){for(const r of XLSX.utils.sheet_to_json(wb.Sheets[rs],{header:1,raw:true,defval:null})){if(!r)continue;const k=norm(r[0]);if(k==='nota'&&r[1])nota=String(r[1]);if(k.includes('fecha de corte')&&!corte)corte=toISO(r[1])}}
+  if(!corte){const ds=rows.map(r=>r.det).filter(Boolean).sort();corte=ds[ds.length-1]||null}
+  const abRows=parseAntibiogramas(wb);
+  const cerrados=parseCerrados(wb,rows);
+  return {rows,cerrados,corte,nota,abRows};
+}
+// Hoja "HISTORIAL - CERRADOS": pacientes que ya salieron del RADAR ACTIVO (egreso, defunción,
+// traslado, o que ya no aparecen en los censos). Mismas columnas que RADAR ACTIVO.
+function parseCerrados(wb,activos){
+  const name=wb.SheetNames.find(n=>norm(n).includes('historial'));
+  if(!name)return [];
+  const aoa=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:true,defval:null});
+  const hi=aoa.findIndex(r=>r&&r.some(c=>norm(c)==='fecha de deteccion'));
+  if(hi<0)return [];
+  const hdr=aoa[hi].map(c=>String(c??''));
+  const act=new Set((activos||[]).map(r=>r.id));
+  return aoa.slice(hi+1).filter(r=>r&&r.some(c=>c!=null&&String(c).trim()!=='')).map(r=>mapRow(hdr,r)).filter(o=>(o.nombre||o.cama)&&!act.has(o.id))
+    .map(o=>{if(o.obs&&o.obs.length>500)o.obs='…'+o.obs.slice(-500);return o});
+}
+// Hoja opcional "ANTIBIOGRAMAS" (formato largo: 1 fila por antibiótico, con Código + Categoría S/I/R).
+function parseAntibiogramas(wb){
+  const name=wb.SheetNames.find(n=>norm(n).includes('antibiograma'));
+  if(!name)return [];
+  const aoa=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:true,defval:null});
+  const hi=aoa.findIndex(r=>r&&r.some(c=>norm(c).startsWith('paciente')));
+  if(hi<0)return [];
+  const hdr=aoa[hi].map(c=>norm(c));
+  const ci=k=>hdr.findIndex(h=>h.startsWith(k));
+  const iPac=ci('paciente'),iMic=ci('microorganismo'),iCod=ci('codigo'),iCat=ci('categoria'),iFecha=ci('fecha de estudio'),iFolio=ci('folio');
+  if(iPac<0||iMic<0||iCod<0||iCat<0)return [];
+  const out=[];
+  for(let i=hi+1;i<aoa.length;i++){
+    const r=aoa[i];if(!r)continue;
+    const pac=r[iPac];if(!pac)continue;
+    const cat=String(r[iCat]??'').trim().toUpperCase();
+    if(!cat)continue;
+    out.push({pac:String(pac).trim(),mic:r[iMic],cod:String(r[iCod]??'').trim().toUpperCase(),cat:cat[0],fecha:toISO(r[iFecha])||'',folio:r[iFolio]!=null?String(r[iFolio]).trim():''});
+  }
+  return out;
+}
+window.UVEH_parse=parseWorkbook;
+
+/* ---------- Carga y publicación (solo UVEH) ---------- */
+function loadFile(f){
+  if(!CAN_WRITE)return;
+  const rd=new FileReader();
+  rd.onload=e=>{try{const p=parseWorkbook(XLSX.read(new Uint8Array(e.target.result),{type:'array'}));
+      STATE={...p,file:f.name,publicado:null,preview:true,notasEnf:STATE.notasEnf||{}};render();window.scrollTo({top:0,behavior:'smooth'})}
+    catch(err){$('#banner').innerHTML=`<div class="banner err"><div class="txt"><b>No pude leer el archivo.</b> ${esc(err.message)} Verifica que sea el Excel RADAR con la hoja “RADAR ACTIVO”.</div></div>`}};
+  rd.readAsArrayBuffer(f);
+}
+$('#btnLoad').onclick=()=>$('#file').click();
+$('#file').onchange=e=>{if(e.target.files[0])loadFile(e.target.files[0]);e.target.value=''};
+let dragN=0;
+addEventListener('dragenter',e=>{if(!CAN_WRITE)return;e.preventDefault();dragN++;document.body.classList.add('dragging')});
+addEventListener('dragleave',()=>{if(--dragN<=0){dragN=0;document.body.classList.remove('dragging')}});
+addEventListener('dragover',e=>e.preventDefault());
+addEventListener('drop',e=>{e.preventDefault();dragN=0;document.body.classList.remove('dragging');const f=e.dataTransfer.files[0];if(f)loadFile(f)});
+function publicar(){
+  const b=$('#btnPub');if(b){b.disabled=true;b.textContent='Publicando…'}
+  const payload={corte:STATE.corte,nota:STATE.nota,notasEnf:STATE.notasEnf,file:STATE.file,rows:STATE.rows,cerrados:STATE.cerrados||[],abRows:STATE.abRows,publicado:new Date().toISOString()};
+  google.script.run
+    .withSuccessHandler(res=>{aplicar(res);toast('Publicado. Enfermería ya ve el boletín nuevo.')})
+    .withFailureHandler(err=>{
+      $('#banner').innerHTML=`<div class="banner err"><div class="txt"><b>No se pudo publicar.</b> ${esc(err&&err.message||'Inténtalo de nuevo en un momento.')}</div></div>`;
+      if(b){b.disabled=false;b.textContent='Publicar para enfermería'}})
+    .guardarBoletin(JSON.stringify(payload));
+}
+function aplicar(res){
+  CAN_WRITE=!!(res&&res.puedeEditar);
+  let d=null;try{d=res&&res.data?JSON.parse(res.data):null}catch(e){d=null}
+  PUB=d&&d.rows?d:null;
+  STATE=PUB?{...PUB,preview:false}:VACIO();
+  setWriterUI();
+}
+let PRIMERA=true;
+function cargar(silencioso){
+  if(STATE.preview&&silencioso)return;
+  const rb=$('#btnRefresh');if(rb&&!silencioso){rb.disabled=true;rb.textContent='Actualizando…'}
+  google.script.run
+    .withSuccessHandler(res=>{aplicar(res);if(rb){rb.disabled=false;rb.textContent='↻ Actualizar'}if(!silencioso&&!PRIMERA)toast('Boletín actualizado');PRIMERA=false})
+    .withFailureHandler(err=>{if(rb){rb.disabled=false;rb.textContent='↻ Actualizar'}
+      if(silencioso&&!STATE.empty)return;
+      const sin=String(err&&err.message||'').includes('SIN_ACCESO');
+      STATE={...VACIO(),error:sin?'Tu cuenta de Google todavía no tiene acceso al boletín. Pide a UVEH que te lo comparta con el correo con el que entraste.':'No se pudo abrir el boletín. Revisa tu conexión a internet y toca “Actualizar”.'};render()})
+    .leerBoletin();
+}
+function cancelarPreview(){STATE=PUB?{...PUB,preview:false}:VACIO();render()}
+function setWriterUI(){$('#btnLoad').hidden=!CAN_WRITE;render()}
+// Nota por paciente (ficha), visible para enfermería. Para no ocupar toda la pantalla, se
+// guarda colapsada: un botón junto a "Marcar como revisado"/"Descartado" la despliega.
+// Se guarda por pacKey (expediente o nombre+cama) en STATE.notasEnf para que sobreviva a
+// nuevos cortes. El estado abierto/cerrado se guarda en OPEN (igual que otros desplegables
+// de la app), con la clave 'nota|'+pacKey.
+function notaFichaBtn(key){
+  const txt=(STATE.notasEnf||{})[key]||'';
+  if(!CAN_WRITE&&!txt)return '';
+  const open=!!OPEN['nota|'+key];
+  return `<div class="notaenf-bar"><button class="btn nota-toggle" type="button" data-grp="${esc('nota|'+key)}" aria-expanded="${open}">🗒️ ${txt?'Nota para enfermería':'Agregar nota para enfermería'}</button></div>`;
+}
+function notaFichaHTML(key){
+  const txt=(STATE.notasEnf||{})[key]||'';
+  if(CAN_WRITE){
+    if(notaFichaEditKey===key){
+      return `<div class="pac-nota"><textarea class="pac-nota-box" placeholder="Información extra sobre este paciente que vean las enfermeras…">${esc(txt)}</textarea><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn primary" type="button" data-nefsave="${esc(key)}">Guardar y publicar</button><button class="btn" type="button" data-nefcancel="${esc(key)}">Cancelar</button></div></div>`;
+    }
+    return `<div class="pac-nota">${txt?`<p style="margin:0 0 8px;white-space:pre-wrap">${esc(txt)}</p>`:`<p style="margin:0 0 8px;color:var(--ink-2)">Sin nota para este paciente.</p>`}<button class="btn" type="button" data-nefedit="${esc(key)}">${txt?'Editar nota':'+ Agregar nota'}</button></div>`;
+  }
+  if(!txt)return '';
+  return `<div class="pac-nota"><p style="margin:0;white-space:pre-wrap">${esc(txt)}</p></div>`;
+}
+
+/* ---------- Marcas compartidas: Revisado / Descartado ---------- */
+// Se guardan en la hoja 'marcas' del libro de notas, así las ven todas las cuentas. "Descartado"
+// se identifica por expediente+nombre+programa (no por el motivo de alerta, que el RADAR reescribe
+// cada día); "Revisado" sigue atado al caso exacto (r.id), por si cambia la información.
+const mkD=r=>'d|'+[r.exp,r.nombre,r.prog].map(norm).join('|');
+const mkR=r=>'r|'+r.id;
+const indexMarcas=l=>{const o={};(l||[]).forEach(m=>{o[m.key]=m});return o};
+const corto=e=>String(e||'').split('@')[0];
+function aplicarMarcas(rows){
+  if(!MARCAS){DONE={...LOCAL};return}
+  const d={};
+  rows.forEach(r=>{const m=MARCAS[mkD(r)]||MARCAS[mkR(r)];if(m)d[r.id]={at:m.fecha,cls:m.tipo==='descartado'?'sin_iaas':'revisado',autor:m.autor,fecha:m.fecha}});
+  DONE=d;
+  // Pasa a la hoja compartida lo que ya estaba marcado solo en este navegador
+  if(!migrando&&Object.keys(LOCAL).length){
+    const its=[],ids=[];
+    rows.forEach(r=>{const v=LOCAL[r.id];if(!v)return;ids.push(r.id);if(d[r.id])return;const desc=typeof v==='object'&&v.cls==='sin_iaas';its.push({key:desc?mkD(r):mkR(r),tipo:desc?'descartado':'revisado',activa:true,nombre:r.nombre||'',cama:r.cama||'',servicio:grupo(r)||''})});
+    if(its.length||ids.length){migrando=true;
+      const fin=()=>{ids.forEach(i=>delete LOCAL[i]);store.set('uveh_done',LOCAL);migrando=false};
+      if(its.length)enviarMarcas(its,fin);else{fin()}}
+  }
+}
+function cargarMarcas(){
+  google.script.run
+    .withSuccessHandler(res=>{MARCAS=indexMarcas(res);render()})
+    .withFailureHandler(()=>{})
+    .listarMarcas();
+}
+function enviarMarcas(items,ok){
+  google.script.run
+    .withSuccessHandler(res=>{MARCAS=indexMarcas(res);render();ok&&ok()})
+    .withFailureHandler(err=>{migrando=false;const sin=String(err&&err.message||'').includes('SIN_ACCESO_NOTAS');toast(sin?'Tu cuenta no puede guardar marcas compartidas. Pide a UVEH que te comparta la hoja de notas.':'No se pudo guardar la marca. Intenta de nuevo.')})
+    .guardarMarcas(JSON.stringify(items));
+}
+function marcar(r,tipo){
+  const key=tipo==='descartado'?mkD(r):mkR(r);
+  if(MARCAS){MARCAS[key]={key,tipo,autor:'tú',fecha:new Date().toISOString()};render();
+    enviarMarcas([{key,tipo,activa:true,nombre:r.nombre||'',cama:r.cama||'',servicio:grupo(r)||''}])}
+  else{LOCAL[r.id]=tipo==='descartado'?{at:STATE.corte||true,cls:'sin_iaas'}:(STATE.corte||true);store.set('uveh_done',LOCAL);render()}
+}
+function desmarcar(r){
+  if(MARCAS){const its=[];[mkD(r),mkR(r)].forEach(k=>{if(MARCAS[k]){its.push({key:k,tipo:k[0]==='d'?'descartado':'revisado',activa:false,nombre:r.nombre||'',cama:r.cama||'',servicio:grupo(r)||''});delete MARCAS[k]}});
+    render();if(its.length)enviarMarcas(its)}
+  else{delete LOCAL[r.id];store.set('uveh_done',LOCAL);render()}
+}
+// Notas de enfermería ya enviadas sobre este paciente, visibles dentro de su ficha
+function notasPacHTML(pid,nombre){
+  const nn=normNom(nombre);
+  const l=NOTAS.filter(n=>n.id===pid||(nn&&normNom(n.nombre)===nn));
+  if(!l.length)return '';
+  return l.map(n=>`<div class="pac-nota"><div class="q">🗒️ Nota de enfermería${n.aplicada?' · ya aplicada':''}</div><p style="margin:0;white-space:pre-wrap">${esc(n.texto)}</p><div class="nota-meta">${esc(corto(n.autor))}${n.fecha?' · '+new Date(n.fecha).toLocaleString('es-MX'):''}</div></div>`).join('');
+}
+
+/* ---------- Notas de enfermería (cambios para pasar al Excel del día siguiente) ---------- */
+function cargarNotas(){
+  google.script.run
+    .withSuccessHandler(res=>{NOTAS=res||[];renderNotasBadge();if(!$('#panelNotas').hidden)renderNotasPanel();render()})
+    .withFailureHandler(()=>{})
+    .listarNotasCambio();
+}
+function cargarArchivos(){
+  google.script.run
+    .withSuccessHandler(res=>{ARCHIVOS=res||[];if(!$('#panelArch').hidden)renderArchPanel();render()})
+    .withFailureHandler(()=>{})
+    .listarCultivos();
+}
+// Fotos/PDF de cultivos adjuntos a la ficha de un paciente. Lo puede usar cualquiera (UVEH
+// o enfermería) con acceso a la hoja de notas — mismo canal ya compartido con enfermería.
+const normNom=s=>norm(s).replace(/\s+/g,' ');
+function archivoBoxHTML(pid,nombre,cama,servicio,extra=''){
+  const nn=normNom(nombre);
+  const list=ARCHIVOS.filter(a=>a.id===pid||(nn&&normNom(a.nombre)===nn));
+  const items=list.map(a=>`<a class="arch-item" href="${esc(a.url)}" target="_blank" rel="noopener"><span class="arch-ico">🧫</span><span class="arch-txt">${esc(a.archivo)}${a.id!==pid?`<span class="arch-meta">${esc((a.nombre||'')+(a.cama?' · Cama '+a.cama:''))}</span>`:''}</span><span class="arch-ver">Ver ›</span></a>`).join('');
+  return `<div class="archbox">${items?`<div class="arch-list">${items}</div>`:''}<div class="lnkline"><span></span>${extra}</div><div class="archform" data-archform="${esc(pid)}" data-nombre="${esc(nombre||'')}" data-cama="${esc(cama||'')}" data-servicio="${esc(servicio||'')}" hidden><input type="file" accept="image/*,.pdf,application/pdf" data-archinput="${esc(pid)}"><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" type="button" data-archsend="${esc(pid)}">Subir</button><button class="btn" type="button" data-archcancel="${esc(pid)}">Cancelar</button></div></div></div>`;
+}
+function archPanelHTML(){
+  const q=normNom(($('#archQ')||{}).value||'');
+  const list=ARCHIVOS.filter(a=>!q||normNom([a.nombre,a.cama,a.servicio,a.archivo,a.autor].join(' ')).includes(q));
+  if(!ARCHIVOS.length)return '<p class="explica" style="margin:0">Todavía no hay cultivos adjuntos.</p>';
+  if(!list.length)return '<p class="explica" style="margin:0">Sin resultados.</p>';
+  return `<div class="arch-list">${list.map(a=>`<a class="arch-item" href="${esc(a.url)}" target="_blank" rel="noopener"><span class="arch-ico">🧫</span><span class="arch-txt">${esc(a.nombre||'Paciente')} · Cama ${esc(a.cama||'s/c')}${a.servicio?` · ${esc(a.servicio)}`:''}<span class="arch-meta">${esc(a.archivo)}</span></span><span class="arch-ver">Ver ›</span></a>`).join('')}</div>`;
+}
+/* ---------- Subir cultivos del día: PDF del laboratorio con varias hojas ---------- */
+// Parte el PDF por hoja, lee el nombre del paciente de cada una (OCR en el navegador) y la
+// liga a su ficha. Todo lo dudoso se deja para que lo elija una persona.
+const LIBS=Object.assign({pdfjs:'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',pdfjsw:'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',pdflib:'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js',tess:'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js'},window.UVEH_LIBS||{});
+let LOTE=null;
+const loadScript=u=>new Promise((ok,no)=>{const s=document.createElement('script');s.src=u;s.onload=ok;s.onerror=()=>no(new Error('No se pudo cargar '+u));document.head.appendChild(s)});
+async function loteLibs(){
+  if(!window.pdfjsLib)await loadScript(LIBS.pdfjs);
+  if(!window.PDFLib)await loadScript(LIBS.pdflib);
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc=LIBS.pdfjsw;
+}
+const LSTOP=new Set(['de','la','del','ho','hijo','hija','los','las','el','y']);
+const toks=s=>norm(s).replace(/[^a-z ]/g,' ').split(/\s+/).filter(w=>w.length>2&&!LSTOP.has(w));
+function lev1(a,b){if(a===b)return true;if(Math.abs(a.length-b.length)>1||a.length<6)return false;let i=0;while(i<a.length&&a[i]===b[i])i++;if(a.length===b.length)return a.slice(i+1)===b.slice(i+1);return a.length>b.length?a.slice(i+1)===b.slice(i):b.slice(i+1)===a.slice(i)}
+const tokIn=(w,set)=>{for(const k of set)if(lev1(w,k))return true;return false};
+function lotePacientes(){
+  const m=new Map();
+  (STATE.rows||[]).forEach(r=>{const k=pacKey(r);if(!m.has(k))m.set(k,{pid:k,nombre:r.nombre||'',cama:r.cama||'',servicio:grupo(r)||'',t:toks(r.nombre||'')})});
+  return [...m.values()].sort((a,b)=>a.servicio.localeCompare(b.servicio,'es')||a.nombre.localeCompare(b.nombre,'es'));
+}
+function loteMatch(nombreOcr,pacs){
+  const w=toks(String(nombreOcr).replace(',',' '));if(w.length<2)return null;
+  const hits=[];
+  for(const p of pacs){
+    const k=new Set(p.t);if(k.size<2)continue;for(let q=0;q<p.t.length-1;q++)k.add(p.t[q]+p.t[q+1]);
+    const [chico,gran]=w.length<=k.size?[w,k]:[[...k],new Set(w)];
+    if(Math.min(w.length,p.t.length)<3)continue;
+    if(chico.every(x=>tokIn(x,gran)))hits.push(p);
+  }
+  return hits.length===1?hits[0]:null;
+}
+function loteNombreOCR(t){
+  const x=String(t||'').replace(/\r/g,'');
+  let m=x.match(/Paciente:?[ \t]*([A-ZÑÁÉÍÓÚ][A-ZÑÁÉÍÓÚ .'-]+,[ \t]*[A-ZÑÁÉÍÓÚ .'-]+)/);
+  if(!m)m=x.match(/^[ \t]*([A-ZÑÁÉÍÓÚ][A-ZÑÁÉÍÓÚ .'-]+,[ \t]*[A-ZÑÁÉÍÓÚ .'-]+)[ \t]*$/m);
+  return m?m[1].replace(/\s+/g,' ').trim().replace(/(\s+[^A-ZÑÁÉÍÓÚ ]*[A-ZÑ]{0,2}[^A-ZÑÁÉÍÓÚ ]*)+$/,x=>/,/.test(x)?x:'').replace(/\s+\S{1,2}$/,'').replace(/[\s-]+$/,'').trim():'';
+}
+async function loteAnalizar(file){
+  LOTE={nombre:file.name,pages:[],fase:'leyendo',msg:'Abriendo el PDF…',prog:0,bytes:null};renderLote();
+  try{
+    await loteLibs();
+    LOTE.bytes=await file.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:LOTE.bytes.slice(0)}).promise;
+    const n=pdf.numPages;let worker=null,ocrOk=true;
+    try{await loadScript(LIBS.tess);worker=await Tesseract.createWorker('eng',1,window.UVEH_TESS||{});}catch(e){ocrOk=false}
+    LOTE.ocrOk=ocrOk;
+    const pacs=lotePacientes();
+    for(let i=1;i<=n;i++){
+      LOTE.msg=`Leyendo hoja ${i} de ${n}…`;LOTE.prog=(i-1)/n;renderLote();
+      const pg=await pdf.getPage(i);
+      const v2=pg.getViewport({scale:2});
+      const full=document.createElement('canvas');full.width=v2.width;full.height=v2.height;
+      await pg.render({canvasContext:full.getContext('2d'),viewport:v2}).promise;
+      const th=document.createElement('canvas');const sc=360/full.width;th.width=360;th.height=Math.round(full.height*sc);
+      th.getContext('2d').drawImage(full,0,0,th.width,th.height);
+      const page={n:i,thumb:th.toDataURL('image/jpeg',.6),ocr:'',texto:'',sel:'',estado:''};
+      if(worker){
+        try{
+          const h=Math.round(full.height*.3),crop=document.createElement('canvas');crop.width=full.width;crop.height=h;
+          crop.getContext('2d').drawImage(full,0,0,full.width,h,0,0,full.width,h);
+          const r=await worker.recognize(crop);page.texto=r.data.text||'';
+          page.ocr=loteNombreOCR(page.texto);
+          if(!page.ocr){const r2=await worker.recognize(full);page.texto=r2.data.text||'';page.ocr=loteNombreOCR(page.texto)}
+          const hit=page.ocr?loteMatch(page.ocr,pacs):null;
+          if(hit){page.sel=hit.pid;page.estado='ok'}
+          else if(/consulta\s*ext/i.test(page.texto)){page.sel='_omitir';page.estado='om'}
+          else page.estado='rev';
+        }catch(e){page.estado='rev'}
+      }else page.estado='rev';
+      LOTE.pages.push(page);
+    }
+    if(worker)try{await worker.terminate()}catch(e){}
+    LOTE.fase='revisar';LOTE.msg='';LOTE.prog=1;
+  }catch(e){LOTE.fase='error';LOTE.msg='No se pudo procesar el PDF: '+(e&&e.message||e)}
+  renderLote();
+}
+function loteOpts(sel,pacs){
+  return `<option value="">— Elegir paciente —</option><option value="_omitir"${sel==='_omitir'?' selected':''}>Omitir (no es de un paciente hospitalizado)</option>`+pacs.map(p=>`<option value="${esc(p.pid)}"${sel===p.pid?' selected':''}>${esc(p.nombre)} · Cama ${esc(p.cama||'s/c')} · ${esc(p.servicio)}</option>`).join('');
+}
+function loteConteo(){
+  const c={lig:0,pen:0,om:0};(LOTE.pages||[]).forEach(p=>{if(p.sel==='_omitir')c.om++;else if(p.sel)c.lig++;else c.pen++});return c;
+}
+function renderLote(){
+  const b=$('#loteBody');if(!b)return;
+  if(!LOTE){b.hidden=true;b.innerHTML='';return}
+  b.hidden=false;
+  const ayuda='<p class="lote-help">Elige el PDF que te dio el laboratorio (todas las hojas juntas). La app lo separa por hoja, lee el nombre de cada paciente y lo adjunta a su ficha. Revisa antes de adjuntar: lo que no reconozca lo eliges tú.</p>';
+  if(LOTE.fase==='elegir'||!LOTE.fase){b.innerHTML=ayuda+'<div class="lote-bar"><input type="file" id="loteFile" accept="application/pdf"><button class="btn" type="button" data-lote="cancelar">Cancelar</button></div>';return}
+  if(LOTE.fase==='leyendo'){b.innerHTML=`${ayuda}<div class="lote-sum">${esc(LOTE.msg)}</div><div class="lote-prog"><i style="width:${Math.round((LOTE.prog||0)*100)}%"></i></div>`;return}
+  if(LOTE.fase==='error'){b.innerHTML=`${ayuda}<p class="lote-help" style="color:var(--crit)">${esc(LOTE.msg)}</p><div class="lote-bar"><input type="file" id="loteFile" accept="application/pdf"><button class="btn" type="button" data-lote="cancelar">Cerrar</button></div>`;return}
+  if(LOTE.fase==='subiendo'||LOTE.fase==='listo'){b.innerHTML=`<div class="lote-sum">${esc(LOTE.msg)}</div><div class="lote-prog"><i style="width:${Math.round((LOTE.prog||0)*100)}%"></i></div>${LOTE.fase==='listo'?`<div class="lote-bar"><button class="btn" type="button" data-lote="cancelar">Cerrar</button></div>`:''}${LOTE.resumen?`<p class="lote-help">${LOTE.resumen}</p>`:''}`;return}
+  const pacs=lotePacientes(),c=loteConteo();
+  b.innerHTML=`${LOTE.ocrOk===false?'<p class="lote-help" style="color:var(--warn)">No se pudo activar la lectura automática de nombres en este navegador. Elige el paciente de cada hoja.</p>':''}`+
+   `<div class="lote-bar"><span class="lote-sum">${c.lig} para adjuntar · ${c.pen} por elegir · ${c.om} omitidos</span><button class="btn" type="button" data-lote="enviar"${c.lig?'':' disabled'}>Adjuntar ${c.lig} cultivo${c.lig===1?'':'s'}</button><button class="btn" type="button" data-lote="cancelar">Cancelar</button></div>`+
+   `<p class="lote-help">${esc(LOTE.nombre)} · ${LOTE.pages.length} hojas. Toca la imagen para verla grande. Las hojas sin paciente elegido no se adjuntan.</p>`+
+   LOTE.pages.map((p,i)=>`<div class="lote-row"><img src="${p.thumb}" alt="Hoja ${p.n}" data-loteimg="${i}"><div><div class="lote-ocr">Hoja ${p.n}${p.ocr?` · Leído: <b>${esc(p.ocr)}</b>`:' · No se leyó el nombre'}</div><select data-loteidx="${i}">${loteOpts(p.sel,pacs)}</select><span class="lote-st ${p.sel==='_omitir'?'om':p.sel?(p.estado==='ok'?'ok':'rev'):'rev'}">${p.sel==='_omitir'?'Omitida':p.sel?(p.estado==='ok'?'Ligada automáticamente':'Elegida por ti'):'Falta elegir'}</span></div></div>`).join('');
+}
+const u8b64=u=>{let s='',k=0x8000;for(let i=0;i<u.length;i+=k)s+=String.fromCharCode.apply(null,u.subarray(i,i+k));return btoa(s)};
+const subirCultivoP=obj=>new Promise((ok,no)=>google.script.run.withSuccessHandler(ok).withFailureHandler(no).subirCultivo(JSON.stringify(obj)));
+async function loteComprimir(nums){
+  const pdf=await pdfjsLib.getDocument({data:LOTE.bytes.slice(0)}).promise;
+  const out=await PDFLib.PDFDocument.create();
+  for(const n of nums){
+    const pg=await pdf.getPage(n),vp=pg.getViewport({scale:1.5});
+    const cv=document.createElement('canvas');cv.width=Math.round(vp.width);cv.height=Math.round(vp.height);
+    await pg.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
+    const jb=await new Promise(r=>cv.toBlob(r,'image/jpeg',0.65));
+    const img=await out.embedJpg(new Uint8Array(await jb.arrayBuffer()));
+    const page=out.addPage([cv.width,cv.height]);page.drawImage(img,{x:0,y:0,width:cv.width,height:cv.height});
+  }
+  return await out.save();
+}
+async function loteEnviar(){
+  const pacs=lotePacientes(),por=new Map();
+  LOTE.pages.forEach((p,i)=>{if(p.sel&&p.sel!=='_omitir'){if(!por.has(p.sel))por.set(p.sel,[]);por.get(p.sel).push(i)}});
+  const hoy=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'}).replace(/\//g,'-');
+  const total=por.size;let n=0,ok=0,dup=0;const fallos=[];
+  LOTE.fase='subiendo';renderLote();
+  const src=await PDFLib.PDFDocument.load(LOTE.bytes);
+  for(const [pid,idx] of por){
+    n++;const pac=pacs.find(x=>x.pid===pid)||{nombre:'',cama:'',servicio:''};
+    LOTE.msg=`Adjuntando ${n} de ${total}: ${pac.nombre}…`;LOTE.prog=(n-1)/total;renderLote();
+    const filename=`Cultivo ${hoy} - ${pac.nombre||'paciente'}.pdf`;
+    if(ARCHIVOS.some(a=>a.id===pid&&a.archivo===filename)){dup++;continue}
+    try{
+      const out=await PDFLib.PDFDocument.create();
+      const cps=await out.copyPages(src,idx.map(i=>LOTE.pages[i].n-1));cps.forEach(x=>out.addPage(x));
+      const bytes=await out.save();
+      if(bytes.length*1.34>15*1024*1024)throw new Error('pesa más de 15 MB');
+      const payload={id:pid,nombre:pac.nombre,cama:pac.cama,servicio:pac.servicio,filename,mimeType:'application/pdf',base64:u8b64(bytes)};
+      let res;try{res=await subirCultivoP(payload)}catch(e1){if(/SIN_ACCESO/.test(String(e1&&e1.message)))throw e1;
+        // Reintento con el PDF comprimido (cada hoja como JPEG): si falló por tamaño, así pasa
+        LOTE.msg=`Adjuntando ${n} de ${total}: ${pac.nombre} (comprimiendo)…`;renderLote();
+        const cb=await loteComprimir(idx.map(i=>LOTE.pages[i].n));
+        try{res=await subirCultivoP({...payload,base64:u8b64(cb)})}catch(e2){const m2=String(e2&&e2.message||e2||'');throw new Error((m2||'sin detalle')+' · '+Math.round(bytes.length/1024)+' KB original, '+Math.round(cb.length/1024)+' KB comprimido')}}
+      ARCHIVOS=res||ARCHIVOS;
+      ok++;
+    }catch(e){const em=String(e&&e.message||e||'').replace(/^Error:\s*/,'').slice(0,160);fallos.push(pac.nombre+': '+(em.includes('SIN_ACCESO_CULTIVOS')?'tu cuenta no tiene permiso para adjuntar':'no se pudo subir'+(em?' ('+em+')':'')))}
+  }
+  LOTE.fase='listo';LOTE.prog=1;
+  LOTE.msg=`Listo: ${ok} adjunto${ok===1?'':'s'}${dup?` · ${dup} ya estaba${dup===1?'':'n'} adjunto${dup===1?'':'s'}`:''}${fallos.length?` · ${fallos.length} con error`:''}.`;
+  LOTE.resumen=fallos.length?fallos.map(esc).join('<br>'):'';
+  renderArchPanel();render();renderLote();
+}
+function renderArchPanel(){const b=$('#archBody');if(b)b.innerHTML=archPanelHTML()}
+function renderNotasBadge(){
+  const n=NOTAS.filter(x=>!x.aplicada).length,b=$('#notasBadge');if(b){b.hidden=!n;b.textContent=n}const b2=$('#notasBadge2');if(b2){b2.hidden=!n;b2.textContent=n}
+}
+function notasPanelHTML(){
+  if(!NOTAS.length)return '<p class="explica" style="margin:0">Todavía no hay notas de enfermería.</p>';
+  const pend=NOTAS.filter(n=>!n.aplicada),listas=NOTAS.filter(n=>n.aplicada);
+  const row=n=>`<div class="nota-item ${n.aplicada?'aplicada':''}"><div class="nota-head">${esc(n.nombre||'Paciente')} · Cama ${esc(n.cama||'s/c')}${n.servicio?` · ${esc(n.servicio)}`:''}</div>${EDITN===n.fila?`<textarea class="nota-edit" data-notaedtxt="${n.fila}" rows="4">${esc(n.texto)}</textarea>`:`<div class="nota-txt">${esc(n.texto)}</div>`}<div class="nota-meta">${esc(n.autor||'')}${n.fecha?` · ${new Date(n.fecha).toLocaleString('es-MX')}`:''}${n.editada?' · editada':''}</div>${CAN_WRITE&&!n.aplicada?`<div><button class="btn" type="button" data-notadone="${n.fila}">✓ Ya lo pasé al Excel</button></div>`:''}${n.puede?(EDITN===n.fila?`<div class="nota-acc"><button class="btn" type="button" data-notaedsave="${n.fila}">Guardar cambios</button><button class="btn" type="button" data-notaedcancel="1">Cancelar</button></div>`:DELN===n.fila?`<div class="nota-acc"><span class="nota-meta">¿Borrar esta nota?</span><button class="btn" type="button" data-notadel="${n.fila}">Sí, borrar</button><button class="btn" type="button" data-notadelcancel="1">No</button></div>`:`<div class="nota-acc"><button class="btn" type="button" data-notaedit="${n.fila}">✎ Editar</button><button class="btn" type="button" data-notadelask="${n.fila}">🗑 Borrar</button></div>`):''}</div>`;
+  return `<div class="q">Pendientes de pasar al Excel (${pend.length})</div><div class="notas-list">${pend.length?pend.map(row).join(''):'<p class="explica" style="margin:0">Ninguna pendiente.</p>'}</div>`+
+    (listas.length?`<details class="hechos" style="margin-top:10px"><summary>Ya aplicadas (${listas.length})</summary><div class="notas-list" style="margin-top:8px">${listas.map(row).join('')}</div></details>`:'');
+}
+function renderNotasPanel(){$('#notasBody').innerHTML=notasPanelHTML()}
+
+/* ---------- Clasificación ---------- */
+// Un paciente también cuenta como (probable) IAAS si comparte microorganismo y servicio
+// con otro paciente (mismo criterio que "Posibles brotes"), aunque el RADAR del día no lo
+// haya marcado todavía con programa "IAAS" — así las dos pestañas avisan de lo mismo.
+let BROTE_IDS=new Set();let ATB_INDEX={};
+const isIAAS=r=>norm(r.prog).includes('iaas')||BROTE_IDS.has(r.id);
+const priN=r=>PRI[norm(r.pri)]??4;
+const rhoveCapt=r=>norm(r.rhove).startsWith('capturada');
+const descart=r=>norm(r.epi).startsWith('descartad')||norm(r.rhove).startsWith('descartad');
+const isFoco=r=>isIAAS(r)&&!rhoveCapt(r)&&!descart(r);
+const egresado=r=>!!r.egreso||/egres|defunc|traslad|cerrad/.test(norm(r.oper));
+// Motivo por el que un paciente ya no está en el RADAR ACTIVO (solo lo que el propio RADAR dice).
+function motivoEgr(r){
+  const o=norm(r.oper);
+  if(/defunc/.test(o))return 'Defunción';
+  if(/traslad/.test(o))return 'Traslado';
+  if(/ambulator|consulta externa/.test(o))return 'Ambulatorio';
+  if(/egres/.test(o)||r.egreso)return 'Egreso';
+  if(/no localizad|sin localiz/.test(o))return 'No localizado en censo';
+  return 'Cerrado';
+}
+const esNuevo=r=>!!(STATE.corte&&r.det&&daysBetween(r.det,STATE.corte)<=1);
+const cultRec=r=>!!(r.fres&&STATE.corte&&daysBetween(r.fres,STATE.corte)>=0&&daysBetween(r.fres,STATE.corte)<=2);
+// Cultivo pendiente = ya se tomó la muestra, pero todavía no hay reporte/resultado.
+// Solo se basa en los datos estructurados (muestra/resultado) — ya NO se infiere de
+// frases genéricas en las observaciones (como la nota de cierre de cada corte que dice
+// "cultivos y antibiogramas pendientes de recibir/cotejar"), porque esa frase aparece
+// en casi todas las fichas y antes marcaba como "pendiente" casos que ya tenían
+// microorganismo y resultado identificados.
+function cultPend(r){
+  if(r.muestra&&!r.res)return true;
+  if(r.res&&norm(r.res).includes('pendient'))return true;
+  // Ya está capturada en RHOVE (la IAAS está confirmada) pero en nuestro seguimiento no
+  // tenemos registrado NINGÚN dato de cultivo — no es una "posible" IAAS sin cultivo,
+  // es una IAAS ya confirmada a la que simplemente le falta el reporte en nuestros datos.
+  if(rhoveCapt(r)&&!r.muestra&&!r.micro&&!r.res)return true;
+  return false;
+}
+// IAAS SOSPECHADA (todavía NO capturada/confirmada en RHOVE) que no tiene registrada
+// NINGUNA muestra, microorganismo ni resultado — es decir, todavía no se le ha tomado
+// ningún cultivo. Si ya está capturada en RHOVE, aunque le falten estos datos, cuenta
+// como "cultivo pendiente" (arriba), no como sospecha sin cultivo.
+function sinCultivo(r){
+  if(!isIAAS(r)||descart(r)||rhoveCapt(r))return false;
+  return !r.muestra&&!r.micro&&!r.res;
+}
+// IAAS ya capturada en RHOVE, para la que ya identificamos el microorganismo (por censo
+// o por el cultivo en PDF que entrega el laboratorio), pero ese microorganismo todavía no
+// se ha dado de alta en la plataforma RHOVE — queda pendiente cargar ese resultado ahí.
+// Nota: no compara fechas, solo si ya tenemos un microorganismo real identificado
+// (orgs() descarta "sin desarrollo"/"no se aisló"/negativos, que no cuentan como dato por cargar).
+function cultSinCapturar(r){
+  if(!isIAAS(r)||!rhoveCapt(r))return false;
+  // Misma regla que las etiquetas "Capturado / Pendiente captura" de la ficha: solo cuenta
+  // si el RADAR marcó al menos un microorganismo como "(pendiente)". Si todos ya están
+  // capturados en RHOVE, la ficha ya no se manda a esta lista.
+  return microChips(r).some(m=>!m.captured);
+}
+// Paciente que reingresa y ya tenía una IAAS capturada en RHOVE en una hospitalización
+// anterior (lo marca el propio RADAR en el motivo u observaciones, p.ej. "Reingreso por..."
+// o "Reactivado en RADAR ACTIVO al reaparecer en el censo"). Hay que revisar si es
+// continuación del mismo evento o si amerita una IAAS nueva de esta hospitalización.
+const esReingreso=r=>/reingres/.test(norm([r.motivo,r.obs].join(' ')));
+
+/* Agrupación de servicios (reglas UVEH) */
+const GRUPOS=[
+ [/^(ucim|ucin|utip|uti pediatrica|unidad de terapia intermedia pediatrica|terapia intermedia pediatrica|lactantes|escolares|preescolares|pediatria|nefrologia pediatrica|oncologia pediatrica|urgencias pediatricas|observacion pediatrica|neonatologia|cunero)/,'Pediatría'],
+ [/^(ginecologia|obstetricia|tococirugia)/,'Ginecología y Obstetricia'],
+ [/^hemodialisis/,'Medicina Interna'],
+ [/^dialisis/,'Diálisis'],
+ [/^(cirugia oncologica|urologia|cirugia general)/,'Cirugía General'],
+ [/^(medicina interna|nefrologia|oncologia)/,'Medicina Interna'],
+ [/^(traumatologia|tyo)/,'TYO'],
+ [/^(unidad de quemados|quemados)/,'Unidad de Quemados'],
+ [/^urgencias/,'Urgencias Adultos'],
+ [/^ucia/,'UCIA'],
+];
+const CANON={'infectologia':'Infectología','neumologia':'Neumología','neurologia':'Neurología','neurocirugia':'Neurocirugía','cardiologia':'Cardiología','cirugia reconstructiva':'Cirugía Reconstructiva','coloproctologia':'Coloproctología','otorrinolaringologia':'Otorrinolaringología','hematologia':'Hematología','oncohematologia':'Oncohematología','gastroenterologia':'Gastroenterología','consulta externa':'Consulta Externa'};
+function grupo(r){const first=String(r.svc||'').split('/')[0].trim();if(!first)return 'Sin servicio';const n=norm(first);for(const [re,l] of GRUPOS)if(re.test(n))return l;return CANON[n]||first.toLowerCase().replace(/(^|\s)(\S)/g,(m,a,b)=>a+b.toUpperCase())}
+const SUB={'Medicina Interna':[[/^hemodialisis/,'Hemodiálisis'],[/^nefrologia/,'Nefrología'],[/^oncologia/,'Oncología']],'Cirugía General':[[/^cirugia oncologica/,'Cirugía Oncológica'],[/^urologia/,'Urología']],'Pediatría':[[/^ucim/,'UCIM'],[/^ucin/,'UCIN'],[/^(utip|uti pediatrica|unidad de terapia intermedia pediatrica|terapia intermedia pediatrica)/,'UTIP']]};
+function subgrupo(r){const g=grupo(r),rules=SUB[g];if(!rules)return'';const n=norm(String(r.svc||'').split('/')[0]);for(const [re,l] of rules)if(re.test(n))return l;return g}
+
+/* Posibles brotes */
+const GEN={k:'klebsiella',a:'acinetobacter',p:'pseudomonas',s:'staphylococcus',c:'candida'};
+function orgs(txt){if(!txt)return[];const t=norm(txt);if(/no se aisl|sin desarrollo|^vih$|negativ/.test(t))return[];
+  return t.replace(/\([^)]*\)/g,'').split(/;|\/|\+|,|\by\b/).map(x=>x.trim()).filter(Boolean).map(x=>{x=x.replace(/\b(complex|complejo|subs?p?\.?\s+\w+|spp?\.?)\b/g,'').replace(/\s+/g,' ').trim();const w=x.split(' ');if(w.length<2)return null;let g=w[0].replace('.',''),s=w[1];if(g.length<=2){if(g==='e')g=s==='coli'?'escherichia':(s==='cloacae'||s==='aerogenes'?'enterobacter':'e');else g=GEN[g]||g}return `${g} ${s}`}).filter(Boolean)}
+const pretty=k=>{const [g,s]=k.split(' ');return g[0].toUpperCase()+g.slice(1)+' '+s};
+// Microorganismos de una ficha, cada uno marcado como "Capturado" o "Pendiente captura".
+// No se infiere nada por fechas: si el episodio completo no está capturado en RHOVE,
+// todos quedan pendientes. Si sí está capturado, un microorganismo cuenta como capturado
+// salvo que el RADAR lo marque explícitamente como pendiente escribiendo "(pendiente)"
+// junto al nombre — p.ej. "Enterobacter cloacae; Staphylococcus aureus (pendiente)" — tras
+// haberlo verificado directamente contra el listado de microorganismos de la base RHOVE.
+function microChips(r){
+  const raw=String(r.micro||'');
+  if(!raw||!orgs(raw).length)return[];
+  const holders=[];
+  const safe=raw.replace(/\([^)]*\)/g,m=>{holders.push(m);return `\u0000${holders.length-1}\u0000`});
+  return safe.split(/;|\/|\+|,|\by\b/i).map(x=>x.trim()).filter(Boolean).map(tok=>{
+    const restored=tok.replace(/\u0000(\d+)\u0000/g,(_,i)=>holders[+i]);
+    const marcaPend=/\(\s*pendiente[^)]*\)/i.test(restored);
+    const label=restored.replace(/\(\s*pendiente[^)]*\)/ig,'').replace(/\s+/g,' ').trim();
+    return {label,captured:rhoveCapt(r)&&!marcaPend};
+  });
+}
+const SVC_ALIAS=[['ucia'],['ucin'],['utip'],['ucim'],['terapia intermedia pediatrica','utip'],['medicina interna'],['cirugia general'],['traumatologia','tyo'],['tyo'],['neurocirugia'],['neumologia'],['nefrologia'],['dialisis','nefrologia'],['infectologia'],['hematologia'],['oncologia'],['quemados'],['urgencias adultos'],['urgencias pediatricas'],['ginecologia','gyo'],['lactantes'],['escolares'],['preescolares'],['neurologia'],['urologia'],['cardiologia'],['gastroenterologia'],['observacion pediatrica']];
+function svcKeys(r){const t=norm([r.svc,r.prev].filter(Boolean).join(' / '));const out=new Set();for(const [a,k] of SVC_ALIAS){if(t.includes(a))out.add(k||a)}if(!out.has('urgencias adultos')&&!out.has('urgencias pediatricas')&&t.includes('urgencias'))out.add('urgencias');return out}
+const svcLabel=k=>({'ucia':'UCIA','ucin':'UCIN','utip':'UTIP','ucim':'UCIM','tyo':'TYO','gyo':'Ginecología y Obstetricia','cirugia general':'Cirugía General','neurocirugia':'Neurocirugía','neumologia':'Neumología','nefrologia':'Nefrología','infectologia':'Infectología','hematologia':'Hematología','oncologia':'Oncología','urgencias pediatricas':'Urgencias Pediátricas','neurologia':'Neurología','urologia':'Urología','cardiologia':'Cardiología','gastroenterologia':'Gastroenterología','observacion pediatrica':'Observación Pediátrica'}[k]||k.replace(/\b\w/g,c=>c.toUpperCase()));
+function brotes(rows){const by={};rows.filter(r=>!egresado(r)).forEach(r=>orgs(r.micro).forEach(o=>{(by[o]=by[o]||[]).push(r)}));const out=[];
+  for(const o in by){const list=[...new Map(by[o].map(r=>[r.exp||r.nombre,r])).values()];if(list.length<2)continue;const cnt={};list.forEach(r=>svcKeys(r).forEach(s=>cnt[s]=(cnt[s]||0)+1));const shared=Object.entries(cnt).filter(([,n])=>n>=2).sort((a,b)=>b[1]-a[1]);if(!shared.length)continue;const top=shared[0][0];out.push({org:o,shared:shared.map(([s])=>svcLabel(s)),members:list.filter(r=>svcKeys(r).has(top)),ab:o.startsWith('acinetobacter')})}
+  return out.sort((a,b)=>(b.ab-a.ab)||(b.members.length-a.members.length))}
+// Mismo microorganismo y el mismo patrón real de sensible/intermedio/resistente por antibiótico.
+// Fuente preferida: la hoja "ANTIBIOGRAMAS" (formato largo, 1 fila por antibiótico, columna Código +
+// Categoría S/I/R) cuando el Excel la trae — es la fuente exacta, sin depender de cómo se redactó el
+// resumen en la columna "Tratamiento". Si un paciente no aparece ahí, se usa como respaldo el texto
+// libre de esa columna. No requiere coincidir en servicio: un antibiograma calcado entre pacientes es
+// en sí una señal fuerte, aunque estén en pisos distintos.
+const nameKey=s=>norm(s).split(/\s+/).filter(Boolean).sort().join(' ');
+function atbPattern(atb){
+  if(!atb)return null;
+  const t=norm(atb);
+  const combos=[];
+  // formato tabular (reporte de laboratorio tal cual): <droga> <valor MIC opcional> <estatus>
+  const reTab=/([a-z]+(?:\/[a-z]+)?)\s*(?:[<>=]{1,2}\s*)?\d+(?:[.,]\d+)?\s*(resistente|sensible|intermedio)/g;let mt;
+  while((mt=reTab.exec(t))){combos.push(mt[1]+':'+mt[2][0].toUpperCase())}
+  // formato prosa: "resistente a X, Y" / "sensible a X, Y" / "intermedio a X"
+  const grab=(label)=>{const re=new RegExp(label+'\\s+a\\s+([^;.]+)','g');let m,out=[];
+    while((m=re.exec(t))){m[1].split(/,|\by\b/).forEach(d=>{d=d.trim().replace(/\.$/,'');if(d)out.push(d)})}
+    return out};
+  grab('resistente').forEach(d=>combos.push(d+':R'));
+  grab('sensible').forEach(d=>combos.push(d+':S'));
+  grab('intermedio').forEach(d=>combos.push(d+':I'));
+  const re2=/\b([a-zñ/]{4,})\s+intermedio\b/g;let m2;
+  while((m2=re2.exec(t))){const d=m2[1].trim();if(d)combos.push(d+':I')}
+  if(!combos.length)return null;
+  return [...new Set(combos)].sort().join('|')}
+function buildAtbIndex(abRows){
+  const byKey={};
+  (abRows||[]).forEach(r=>{
+    if(!r.pac||!r.cod||!r.cat)return;
+    const nk=nameKey(r.pac);
+    orgs(r.mic).forEach(o=>{
+      const gk=nk+'||'+o;const fk=(r.fecha||'')+'|'+(r.folio||'');
+      byKey[gk]=byKey[gk]||{};(byKey[gk][fk]=byKey[gk][fk]||[]).push(r);
+    });
+  });
+  const idx={};
+  for(const gk in byKey){
+    const keys=Object.keys(byKey[gk]).sort();
+    const chosen=byKey[gk][keys[keys.length-1]]; // folio/fecha más reciente
+    const combos=[...new Set(chosen.map(r=>r.cod+':'+r.cat))].sort();
+    if(combos.length)idx[gk]=combos.join('|');
+  }
+  return idx;
+}
+// Subconjunto de "brotes": además de compartir microorganismo y servicio (actual o previo), el
+// antibiograma (sensible/intermedio/resistente por antibiótico) es idéntico. Si no comparten
+// servicio no se marcan aquí, aunque el antibiograma coincida — eso solo sería coincidencia de un
+// microorganismo común sin relación epidemiológica.
+function brotesIdenticos(rows){
+  return brotes(rows).map(b=>{
+    const by={};
+    b.members.forEach(r=>{
+      const nk=nameKey(r.nombre);
+      const pat=ATB_INDEX[nk+'||'+b.org]||atbPattern(r.atb);
+      if(!pat)return;
+      (by[pat]=by[pat]||[]).push(r);
+    });
+    return Object.values(by).filter(list=>list.length>=2).map(list=>({org:b.org,members:list,shared:b.shared,ab:b.ab}));
+  }).flat().sort((a,b)=>(b.ab-a.ab)||(b.members.length-a.members.length));
+}
+
+/* ---------- Filtros ---------- */
+// Subservicios de Pediatría: salen SOLO de palabras literales en "servicio actual" o "cama actual"
+// (p. ej. "UCIN CUNA 11"), o de la ubicación actual que el RADAR escribe en observaciones
+// ("localizado en Pediatría, LACTANTES, cama 61"); nunca de ubicaciones previas ni se infieren.
+const SUBPED_L=[['Lactantes',/\blactantes?\b/],['Escolares',/\bescolares?\b/],['Oncohematología',/onco\s*-?\s*hemato|\bhematooncolog|\boncopediatri/],['UCIM',/\bucim\b/],['UCIN',/\bucin\b/],['UTIP',/\butip\b/],['Terapia Intermedia',/terapia intermedia/],['Nefrología pediátrica',/\bnefro/],['Urgencias',/\burgencias\b/],['Observación',/\bobservacion\b/]];
+const RENAL_L=[['Hemodiálisis',/\bhemodialisis\b/,/\bhemodialisis\b|\b(erc|enfermedad renal cronica)\b[^.;\/\n]{0,60}?\b(hd|tsfr)\b/],['Diálisis peritoneal',/dialisis peritoneal|\bdp\b|cateter\s+(?:de|para)\s+dialisis/,/dialisis peritoneal|\bdp\b|cateter\s+(?:de|para)\s+dialisis/]];
+const SUBS={'Pediatría':{l:SUBPED_L,sin:true},'Medicina Interna':{l:RENAL_L,sin:false,dx:true},'Urgencias Adultos':{l:RENAL_L,sin:false,dx:true}};
+const ubicObs=r=>{const m=String(r.obs||'').match(/(?:localizado en|→)\s*(?:Pediatr[ií]a|Medicina Interna|Urgencias),\s*([^,\n]+?)\s*,\s*cama/i);return m?m[1]:''};
+// Diagnóstico del último censo (texto literal): "Diagnóstico censal 13/10: ERC EN HD / ..." + motivo de alerta
+const dxCenso=r=>{const m=String(r.obs||'').match(/diagn[oó]stico censal[^:\n]*:\s*([^\n]*)/i);return norm((m?m[1]:'')+' '+(r.motivo||''))};
+const subPed=r=>{const c=SUBS[grupo(r)];if(!c)return '';const t=norm([r.svc,r.cama,ubicObs(r)].join(' '));const dx=c.dx?dxCenso(r):'';for(const [l,re,dre] of c.l)if(re.test(t)||(dre&&dre.test(dx)))return l;return ''};
+const bySvc=r=>(!FGRP||grupo(r)===FGRP)&&(!SUBS[FGRP]||!FSUB||(FSUB==='_sin'?!subPed(r):subPed(r)===FSUB));
+function filtrar(list){const q=norm(QTXT);return list.filter(r=>!q||norm([r.nombre,r.cama,r.exp,r.micro,r.motivo,r.svc,r.tipo].join(' ')).includes(q))}
+let QTXT='';
+
+/* ---------- Tarjetas (agrupadas por paciente: varias alertas del mismo paciente van en una sola tarjeta) ---------- */
+const pacKey=r=>{const e=norm(r.exp);return e?'exp:'+e:'nc:'+norm(r.nombre)+'|'+norm(r.cama)};
+function agruparPacientes(items){
+  const order=[],by={};
+  items.forEach(r=>{const k=pacKey(r);if(!by[k]){by[k]=[];order.push(k)}by[k].push(r)});
+  return order.map(k=>by[k]);
+}
+function masHTML(r){
+  const d=[];
+  if(r.res)d.push(['Resultado',esc(r.res)]);
+  if(r.muestra)d.push(['Muestra',esc(r.muestra)+(r.fres?` (${fmt(r.fres)})`:'')]);
+  if(r.disp)d.push(['Dispositivo o cirugía',esc(r.disp)]);
+  if(r.tipo)d.push(['Tipo de IAAS',esc(r.tipo)+(r.fcap?` · capturada ${fmt(r.fcap)}`:'')]);
+  if(r.ing)d.push(['Ingresó',fmtL(r.ing)+(STATE.corte?` · lleva ${daysBetween(r.ing,STATE.corte)+1} días`:'')]);
+  if(r.exp)d.push(['Expediente',esc(r.exp)]);
+  if(r.epi)d.push(['Estado',esc(r.epi)]);
+  return (d.length?`<dl class="datos">${d.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join('')}</dl>`:'')+(r.atb?`<div class="atb"><div class="q">Antibiograma completo</div><div class="atbtext">${esc(r.atb)}</div></div>`:'')+(r.obs?`<div class="obs">${esc(r.obs)}</div>`:'');
+}
+// "Ver más datos": una línea pequeña bajo los botones; el detalle se abre debajo (estado en OPEN).
+function masBtnHTML(r){
+  if(!masHTML(r))return '';
+  const k='mas|'+r.id,open=!!OPEN[k];
+  return `<button class="masbtn" type="button" data-grp="${esc(k)}" aria-expanded="${open}">${open?'Ocultar datos ▴':'Ver más datos ▾'}</button>`;
+}
+function masLinea(r){
+  const h=masHTML(r);if(!h)return '';
+  const k='mas|'+r.id,open=!!OPEN[k];
+  return `<div class="lnkline"><span></span><button class="masbtn" type="button" data-grp="${esc(k)}" aria-expanded="${open}">${open?'Ocultar datos ▴':'Ver más datos ▾'}</button></div>${open?`<div class="masbody">${h}</div>`:''}`;
+}
+
+/* ---------- Criterios de la cédula UVEH (apoyo; la clasificación final es con NOM-045, NHSN y el comité) ---------- */
+const CRIT=[
+ {k:'itscc',t:'ITS relacionada a catéter central',re:/cateter central|its.?cc/,c:['Catéter central instalado por más de 2 días al momento del evento','Hemocultivo positivo a un patógeno reconocido, o a un comensal de piel en 2 o más hemocultivos de tomas separadas','Si es comensal: fiebre (>38 °C), escalofríos o hipotensión','El microorganismo no se explica por una infección en otro sitio']},
+ {k:'sitio',t:'Infección del sitio de inserción del catéter',re:/sitio de insercion/,c:['Eritema, induración, dolor o calor en el sitio de salida del catéter','Secreción purulenta en el sitio de inserción','Cultivo de la secreción del sitio positivo (si se tomó)','Sin bacteriemia relacionada']},
+ {k:'flebitis',t:'Flebitis',re:/flebitis/,c:['Catéter periférico actual o retirado en las últimas 48 h','Dolor, eritema o edema en el trayecto de la vena','Cordón venoso palpable o secreción purulenta']},
+ {k:'itslab',t:'ITS confirmada por laboratorio',re:/\bits\b|torrente|bacteriemia|sanguinea/,c:['Más de 48 h de estancia hospitalaria al tomar la muestra','Hemocultivo positivo a un patógeno reconocido, o a un comensal en 2 o más tomas separadas','Si es comensal: fiebre (>38 °C), escalofríos o hipotensión','No relacionada con catéter central ni con infección en otro sitio']},
+ {k:'neumo',t:'Neumonía definida clínicamente',re:/neumon|\bnav\b|naas/,c:['Imagen de tórax con infiltrado nuevo o progresivo, consolidación o cavitación','Fiebre (>38 °C), leucopenia (<4,000) o leucocitosis (≥12,000)','Esputo purulento nuevo o cambio en las secreciones','Tos, disnea o taquipnea nuevas o que empeoran','Estertores o ruidos bronquiales','Empeoramiento de la oxigenación (más O₂ o más soporte ventilatorio)']},
+ {k:'isq',t:'Infección de sitio quirúrgico',re:/incisional|organos y espacios|quirurg|herida/,c:['Dentro de los 30 días de la cirugía (90 días si hubo implante)','Secreción purulenta de la herida, del drenaje o del espacio','Microorganismo aislado de la herida o del espacio, tomado de forma aséptica','Dolor, edema, eritema o calor local, o herida abierta deliberadamente por el cirujano','Diagnóstico de infección por el cirujano o médico tratante']},
+];
+const CUMPLE={si:'Sí cumple',no:'No cumple',falta:'Falta información'};
+const CRIT_TMP={};
+const mkC=r=>'c|'+[r.exp,r.nombre,r.prog,r.tipo].map(norm).join('|');
+const critGuardado=r=>MARCAS&&MARCAS[mkC(r)]&&MARCAS[mkC(r)].detalle||null;
+function critSugerida(r){const t=norm([r.tipo,r.motivo,r.muestra].join(' '));const c=CRIT.find(x=>x.re.test(t));return c?c.k:''}
+function critHTML(r){
+  if(!isIAAS(r)||descart(r)||STATE.historico)return '';
+  const k='crit|'+r.id,open=!!OPEN[k],g=critGuardado(r),m=MARCAS&&MARCAS[mkC(r)];
+  let h=`<div class="lnkline"><span></span><button class="masbtn" type="button" data-grp="${esc(k)}" aria-expanded="${open}">📋 Criterios${g?' · '+esc(CUMPLE[g.cumple]||'guardados'):''} ${open?'▴':'▾'}</button></div>`;
+  if(!open)return h;
+  const t=CRIT_TMP[r.id]||(CRIT_TMP[r.id]=g?{cat:g.cat,marcados:[...(g.marcados||[])],cumple:g.cumple||''}:{cat:critSugerida(r),marcados:[],cumple:''});
+  const c=CRIT.find(x=>x.k===t.cat);
+  h+=`<div class="crit-box" data-critbox="${esc(r.id)}"><label style="flex-direction:column;gap:4px;cursor:default"><span class="q" style="margin:0">Tipo de IAAS (cédula UVEH)</span><select data-critcat="${esc(r.id)}"><option value="">Elige…</option>${CRIT.map(x=>`<option value="${x.k}" ${x.k===t.cat?'selected':''}>${esc(x.t)}</option>`).join('')}</select></label>`+
+    (c?c.c.map((txt,i)=>`<label><input type="checkbox" data-critchk="${esc(r.id)}" value="${i}" ${t.marcados.includes(i)?'checked':''}><span>${esc(txt)}</span></label>`).join(''):'')+
+    `<div class="q" style="margin:4px 0 0">¿Cumple criterios de IAAS?</div><div class="cumple">${Object.entries(CUMPLE).map(([v,l])=>`<label><input type="radio" name="cumple_${esc(r.id)}" data-critcumple="${esc(r.id)}" value="${v}" ${t.cumple===v?'checked':''}>${l}</label>`).join('')}</div>`+
+    `<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" type="button" data-critsave="${esc(r.id)}">Guardar criterios</button><button class="btn" type="button" data-grp="${esc(k)}" aria-expanded="true">Cerrar</button></div>`+
+    (m&&m.autor?`<div class="crit-res">Guardado por ${esc(corto(m.autor))}${m.fecha?' · '+new Date(m.fecha).toLocaleString('es-MX'):''}</div>`:'')+
+    `<div class="crit-res">Apoyo para la revisión: la clasificación final se hace con la NOM-045-SSA2, los criterios NHSN y el comité de infecciones.</div></div>`;
+  return h;
+}
+function revisarHTML(r,opts){const done=!!DONE[r.id];
+  return critHTML(r)+(()=>{if(opts.noCheck||(opts.estado&&rhoveCapt(r)&&!cultPend(r)&&!cultSinCapturar(r)))return '';
+     if(done){const cls=DONE[r.id]&&typeof DONE[r.id]==='object'?DONE[r.id].cls:null;
+       const dm=DONE[r.id]&&typeof DONE[r.id]==='object'?DONE[r.id]:null,por=dm&&dm.autor?` por ${esc(corto(dm.autor))}${dm.fecha?' · '+new Date(dm.fecha).toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit'}):''}`:'';
+       return `<button class="revisar ${cls==='sin_iaas'?'siniaas':''}" type="button" data-done="${esc(r.id)}">✓ ${cls==='sin_iaas'?'Descartado':'Revisado'}${por} · tocar para deshacer</button>`}
+     return `<div class="revisar-grp"><button class="revisar" type="button" data-done="${esc(r.id)}">✓ Ya lo revisé</button><button class="revisar siniaas" type="button" data-siniaas="${esc(r.id)}">✕ No es infección (descartar)</button></div>`})();
+}
+function eventoHTML(r,opts){
+  const n=priN(r),done=!!DONE[r.id],nuevo=esNuevo(r);
+  const tags=[];
+  if(nuevo)tags.push('<span class="tag new">🆕 Nuevo</span>');
+  if(esReingreso(r))tags.push('<span class="tag pend">🔁 Reingreso</span>');
+  if(BROTE_IDS.has(r.id)&&!norm(r.prog).includes('iaas'))tags.push('<span class="tag pend">🔗 Probable IAAS por patrón de brote</span>');
+  if(cultRec(r))tags.push(`<span class="tag lab">Cultivo ${fmt(r.fres)}</span>`);
+  if(opts.estado){if(rhoveCapt(r)){if(cultPend(r))tags.push('<span class="tag pend">🧪 Cultivo pendiente</span>');else if(cultSinCapturar(r))tags.push('<span class="tag pend">📋 Cultivo sin capturar en RHOVE</span>');tags.push('<span class="tag ok">Ya en RHOVE</span>')}else tags.push('<span class="tag norh">Por revisar</span>')}
+  if(opts.prog)tags.push(`<span class="tag prog">${esc(r.prog||'')}</span>`);
+  if(!opts.estado&&isIAAS(r)&&norm(r.rhove).startsWith('no capturada'))tags.push('<span class="tag norh">No está en RHOVE</span>');
+  if(!isIAAS(r)&&norm(r.notif)==='pendiente')tags.push('<span class="tag pend">Notificación pendiente</span>');
+  return `<div class="evento p${n} ${nuevo?'nuevo':''} ${done?'done':''}">
+   <div class="prio"><span>${PRI_TXT[n]}</span><span class="extra">${tags.join('')}</span></div>
+   ${r.micro?`<div class="micro"><div class="q">Microorganismo</div><div class="micro-chips">${microChips(r).map(m=>`<span class="chip-micro ${m.captured?'cap':'pend'}"><span class="cm-top">${esc(m.label)}<span class="st">${m.captured?'Capturado':'Pendiente valoración/captura'}</span></span>${r.muestra?`<span class="cm-muestra">${esc(r.muestra)}</span>`:''}</span>`).join('')||esc(r.micro)}</div></div>`:''}
+   <div><div class="q">¿Qué pasa?</div><div>${esc(r.motivo||'')}</div></div>
+   ${r.accion?`<div class="hacer"><div class="q">¿Qué hay que hacer?</div><div>${esc(r.accion)}</div></div>`:''}
+   ${opts.single?'':revisarHTML(r,opts)}
+   ${opts.single?'':masLinea(r)}
+  </div>`;
+}
+function tarjeta(grp,opts={}){
+  const rows=(Array.isArray(grp)?grp:[grp]).slice().sort((a,b)=>priN(a)-priN(b)||String(b.det||'').localeCompare(String(a.det||'')));
+  const best=rows[0],sg=subgrupo(best),pid=pacKey(best);
+  const edad=best.edad!=null?` · ${esc(best.edad)}${/^\d+$/.test(String(best.edad))?' años':''}`:'';
+  const notaBtn=notaFichaBtn(pid);
+  const notaBody=notaBtn&&OPEN['nota|'+pid]?notaFichaHTML(pid):'';
+  return `<article class="pac p${priN(best)}">
+   <div class="who"><div class="cama"><small>Cama</small>${esc(best.cama||'s/c')}</div><div><div class="nm">${esc(best.nombre||'—')}</div><div class="meta">${esc(sg&&sg!==grupo(best)?sg:(best.svc||''))}${edad}${rows.length>1?` · ${rows.length} alertas activas`:''}</div></div></div>
+   <div class="eventos">${rows.map(r=>eventoHTML(r,{...opts,single:rows.length===1})).join('')}</div>
+   ${notaBtn}${notaBody}${notasPacHTML(pid,best.nombre)}
+   ${archivoBoxHTML(pid,best.nombre,best.cama,best.svc,rows.length===1?masBtnHTML(best):'')}${rows.length===1&&OPEN['mas|'+best.id]?`<div class="masbody">${masHTML(best)}</div>`:''}
+   ${rows.length===1?`<div class="revfin">${revisarHTML(best,{...opts,single:true})}</div>`:''}
+  </article>`;
+}
+function tiraRevisadosHTML(l){
+  if(!l.length)return '';
+  const open=!!OPEN['revtira'];
+  const fch=d=>d&&d.fecha?new Date(d.fecha).toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit'}):'';
+  const rows=open?l.map(r=>{const d=DONE[r.id],dm=d&&typeof d==='object'?d:null,k='rev|'+r.id,ab=!!OPEN[k];
+    return `<div class="rv-row"><div class="rv-l"><span class="rv-cama">${esc(r.cama||'s/c')}</span><span class="rv-nm">${esc(r.nombre||'—')}</span><span class="rv-sv">${esc(grupo(r))}</span><span class="rv-by">${dm&&dm.autor?esc(corto(dm.autor)):''}${fch(dm)?' · '+fch(dm):''}</span></div><div class="rv-b"><button type="button" class="rv-btn" data-grp="${esc(k)}" aria-expanded="${ab}">${ab?'Ocultar ficha':'Abrir ficha'}</button><button type="button" class="rv-btn" data-done="${esc(r.id)}">↩ Regresar a pendientes</button></div></div>${ab?`<div class="rv-ficha">${tarjeta([r],{todos:true})}</div>`:''}`}).join(''):'';
+  return `<div class="rv-tira"><button type="button" class="rv-head" data-grp="revtira" aria-expanded="${open}"><span>✓ ${l.length} revisado${l.length===1?'':'s'} en seguimiento</span><span>${open?'Ocultar ▴':'Ver lista ▾'}</span></button>${open?`<div class="rv-list">${rows}</div>`:''}</div>`;
+}
+function lista(items,opts){
+  if(!items.length)return '';
+  const grupos=agruparPacientes(items);
+  if(opts&&opts.todos)return `<div class="lista">${grupos.map(g=>tarjeta(g,opts)).join('')}</div>`;
+  const pend=grupos.filter(g=>g.some(r=>!DONE[r.id])),hechos=grupos.filter(g=>g.every(r=>DONE[r.id]));
+  return `${pend.length?`<div class="lista">${pend.map(g=>tarjeta(g,opts)).join('')}</div>`:`<p class="explica" style="margin:0">✓ Ya revisaste todos los de este grupo.</p>`}${hechos.length?`<details class="hechos"><summary>✓ Ya revisados (${hechos.length})</summary><div class="lista" style="margin-top:10px">${hechos.map(g=>tarjeta(g,opts)).join('')}</div></details>`:''}`;
+}
+function porSubservicio(items,opts){
+  const g=grupo(items[0]);const subs=[...new Set(items.map(subgrupo))];
+  if(subs.length<=1)return lista(items,opts);
+  subs.sort((a,b)=>a===g?-1:b===g?1:a.localeCompare(b,'es'));
+  return subs.map(s=>{const x=items.filter(r=>subgrupo(r)===s);return `<div class="sub-h">${esc(s)} <span class="num">${x.length}</span></div>${lista(x,opts)}`}).join('');
+}
+function porServicio(items,opts){
+  const byG={};items.forEach(r=>(byG[grupo(r)]=byG[grupo(r)]||[]).push(r));
+  const urgOf=g=>byG[g].filter(r=>priN(r)===0&&!DONE[r.id]).length;
+  const gl=Object.keys(byG).sort((a,b)=>urgOf(b)-urgOf(a)||byG[b].length-byG[a].length||a.localeCompare(b,'es'));
+  if(FGRP||gl.length===1||QTXT)return gl.map(g=>(FGRP?'':`<h3 style="font-size:24px">${esc(g)}</h3>`)+porSubservicio(byG[g],opts)).join('');
+  return gl.map(g=>{const l=byG[g],urg=urgOf(g),pend=l.filter(r=>!DONE[r.id]).length;
+    const key=TAB+'|'+g,open=key in OPEN?OPEN[key]:urg>0;
+    return `<div class="grp"><button class="grp-h" type="button" data-grp="${esc(key)}" aria-expanded="${open}"><span class="flecha">${open?'▾':'▸'}</span><h3>${esc(g)}</h3>${urg?`<span class="tag" style="background:var(--crit);color:#fff">${urg} urgente${urg>1?'s':''}</span>`:''}<span class="num">${TAB==='iaas'?`${l.length} IAAS · ${l.filter(r=>isFoco(r)&&!DONE[r.id]).length} por revisar${l.filter(r=>rhoveCapt(r)&&cultPend(r)&&!DONE[r.id]).length?` · ${l.filter(r=>rhoveCapt(r)&&cultPend(r)&&!DONE[r.id]).length} c. cultivo pendiente`:''}`:`${pend} pendiente${pend===1?'':'s'}`}</span></button>${open?porSubservicio(l,opts):''}</div>`}).join('');
+}
+
+/* ---------- Pantalla ---------- */
+function banner(){
+  if(STATE.preview)return `<div class="banner preview"><div class="txt"><b>Vista previa, todavía no publicada.</b> ${esc(STATE.file)} · ${STATE.rows.length} eventos · corte ${fmtL(STATE.corte)}. Revisa y publica para que enfermería lo vea.</div><button class="btn primary" id="btnPub" type="button">Publicar para enfermería</button><button class="btn" id="btnCancel" type="button">Descartar</button></div>`;
+  if(!STATE.empty&&STATE.corte&&STATE.corte<hoyISO())return `<div class="banner warn"><div class="txt"><b>Atención: este boletín es del ${largo(STATE.corte)}.</b> El de hoy todavía no se publica, así que algunos datos pueden haber cambiado.</div></div>`;
+  return '';
+}
+function render(){
+  $('#banner').innerHTML=banner();
+  const pb=$('#btnPub');if(pb)pb.onclick=publicar;const cb=$('#btnCancel');if(cb)cb.onclick=cancelarPreview;
+  $('#fecha').textContent=STATE.corte?largo(STATE.corte):'';
+  const est=$('#estado');
+  if(STATE.empty)est.hidden=true;
+  else if(STATE.preview){est.hidden=false;est.className='estado viejo';est.textContent='Vista previa sin publicar'}
+  else{const viejo=STATE.corte<hoyISO();est.hidden=false;est.className='estado'+(viejo?' viejo':'');est.textContent=viejo?`⚠ Datos del ${fmtL(STATE.corte)}`:`✓ Actualizado hoy${STATE.publicado?' a las '+hora(STATE.publicado):''}`}
+  $('#btnWA').hidden=!CAN_WRITE||!!STATE.empty;
+  $('#vacio').hidden=!STATE.empty;$('#contenido').hidden=!!STATE.empty;
+  if(STATE.empty){$('#vacio').innerHTML=STATE.cargando?`<div class="vacio"><h2>Cargando boletín…</h2><p>Un momento, por favor.</p></div>`:STATE.error?`<div class="vacio"><h2>No se pudo abrir</h2><p>${esc(STATE.error)}</p></div>`:`<div class="vacio"><h2>Todavía no hay boletín publicado</h2><p>${CAN_WRITE?'Toca “Cargar RADAR del día” arriba o arrastra el Excel a esta página.':'Cuando UVEH publique el boletín del día aparecerá aquí.'}</p></div>`;return}
+
+  const rows=STATE.rows;
+  aplicarMarcas(rows);
+  ATB_INDEX=buildAtbIndex(STATE.abRows);
+  BROTE_IDS=new Set();brotes(rows).forEach(b=>b.members.forEach(r=>BROTE_IDS.add(r.id)));
+  const G={};rows.forEach(r=>{const g=grupo(r);G[g]=G[g]||{f:0,u:0,t:0};G[g].t++;if(isFoco(r)&&!DONE[r.id]){G[g].f++;if(priN(r)===0)G[g].u++}});
+  if(FGRP&&!G[FGRP])FGRP='';
+  $('#svcActual').textContent=FGRP||'Todos los servicios';
+  const gl=Object.keys(G).sort((a,b)=>G[b].f-G[a].f||G[b].t-G[a].t||a.localeCompare(b,'es'));
+  const totF=gl.reduce((a,g)=>a+G[g].f,0),totU=gl.reduce((a,g)=>a+G[g].u,0);
+  $('#svcGrid').innerHTML=`<button class="nv-svc" type="button" data-svc="" aria-pressed="${!FGRP}"><span>Todos los servicios</span><span class="nv-n ${totU?'r':''}">${totF}</span></button>`+gl.map(g=>`<button class="nv-svc" type="button" data-svc="${esc(g)}" aria-pressed="${FGRP===g}"><span>${esc(g)}</span><span class="nv-n ${G[g].u?'r':''}">${G[g].f}</span></button>`).join('');
+
+  if(!SUBS[FGRP])FSUB='';
+  {const sr=$('#subRow');sr.hidden=!SUBS[FGRP];
+   if(!sr.hidden){const P=rows.filter(r=>grupo(r)===FGRP);const cnt=l=>P.filter(r=>l==='_all'||(l==='_sin'?!subPed(r):subPed(r)===l)&&true).filter(r=>isFoco(r)&&!DONE[r.id]).length;
+    const C=SUBS[FGRP],nSin=C.sin?P.filter(r=>!subPed(r)).length:0;
+    const o=(k,t)=>`<option value="${k==='_all'?'':k}" ${(FSUB||'_all')===k?'selected':''}>${t} (${cnt(k)})</option>`;
+    sr.innerHTML=`<label class="nv-area"><span>Área de ${esc(FGRP)}:</span><select id="subSel" aria-label="Área de ${esc(FGRP)}">`+o('_all','Todas')+C.l.map(([l])=>o(l,l)).join('')+(nSin?o('_sin','Sin especificar'):'')+`</select></label>`}}
+  const svcRows=rows.filter(bySvc);
+  const foco=svcRows.filter(isFoco).sort((a,b)=>priN(a)-priN(b)||String(b.det||'').localeCompare(String(a.det||'')));
+  const br=brotes(rows).filter(b=>!FGRP||b.members.some(bySvc));
+  const otros=svcRows.filter(r=>!isIAAS(r));
+  const capt=svcRows.filter(r=>isIAAS(r)&&rhoveCapt(r));
+  const iaasAll=svcRows.filter(r=>isIAAS(r)&&!descart(r));
+  const cultPendAll=capt.filter(cultPend);
+  const sinCultAll=iaasAll.filter(sinCultivo);
+  const sinCapturarAll=capt.filter(cultSinCapturar);
+  const reingresosAll=svcRows.filter(esReingreso);
+  const idsAct=new Set(rows.map(r=>r.id));
+  const egresosAll=[...(STATE.cerrados||[]).filter(r=>!idsAct.has(r.id)),...rows.filter(egresado)].filter(r=>norm(r.prog).includes('iaas')).filter(bySvc);
+  const descartadosAll=svcRows.filter(r=>DONE[r.id]&&typeof DONE[r.id]==='object'&&DONE[r.id].cls==='sin_iaas');
+  const revisadosAll=svcRows.filter(r=>DONE[r.id]&&!(typeof DONE[r.id]==='object'&&DONE[r.id].cls==='sin_iaas'));
+  const TABS=[['foco','Pacientes por revisar',foco.filter(r=>!DONE[r.id]).length,'t-crit'],['iaas','Todas las IAAS',iaasAll.length,'t-wine'],['cultpend','Cultivos pendientes de resultados',cultPendAll.filter(r=>!DONE[r.id]).length,'t-warn'],['sincult','Posibles IAAS sin cultivos',sinCultAll.filter(r=>!DONE[r.id]).length,'t-warn'],['sincapturar','Cultivo sin capturar en RHOVE',sinCapturarAll.filter(r=>!DONE[r.id]).length,'t-warn'],['reingresos','Reingresos',reingresosAll.filter(r=>!DONE[r.id]).length,'t-warn'],['brotes','Posibles brotes',br.length,'t-warn'],['rhove','Ya en RHOVE',capt.length,'t-ok'],['egresos','Egresos',egresosAll.length,'t-ok'],['descartados','Descartados',descartadosAll.length,'t-mut'],['otros','Otros programas',otros.length,'t-info']];
+  if(!TABS.some(t=>t[0]===TAB))TAB='foco';
+  {const P3=[['foco','🩺','Pacientes por revisar','Empieza por aquí','r'],['iaas','🦠','Todas las IAAS','Activas, no solo pendientes','w'],['cultpend','🧪','Cultivos pendientes','Esperan resultado','w'],['sincapturar','📋','Cultivo sin capturar en RHOVE','Falta capturar','w']];
+   const cnt=k=>(TABS.find(t=>t[0]===k)||[])[2]??0;
+   const otras=TABS.filter(t=>!P3.some(x=>x[0]===t[0]));
+   const enOtra=otras.find(t=>t[0]===TAB);
+   $('#mainTabs').innerHTML=P3.map(([k,ic,t,sub,c])=>`<button class="nv-opt${TAB===k?' main':''}" type="button" data-tab="${k}" aria-pressed="${TAB===k}"><span class="ic">${ic}</span><span class="tx">${t}<small>${sub}</small></span><span class="nv-n ${c}">${cnt(k)}</span></button>`).join('')
+    +`<button class="nv-opt dash${enOtra?' main':''}" type="button" data-otras="1" aria-expanded="${OTRAS}"><span class="ic">☰</span><span class="tx">${enOtra?esc(enOtra[1]):'Otras listas'}<small>${enOtra?'Otras listas':'Reingresos, brotes, egresos…'}</small></span><span class="nv-chev">${OTRAS?'▴':'▾'}</span></button>`;
+   const op=$('#otrasPanel');op.hidden=!OTRAS;
+   op.innerHTML=otras.map(([k,t,n])=>`<button class="nv-orow${TAB===k?' sel':''}" type="button" data-tab="${k}"><span>${esc(t)}</span><span class="nv-n">${n}</span></button>`).join('');
+   const cur=TABS.find(t=>t[0]===TAB);$('#nvTitulo').innerHTML=`${esc(cur?cur[1]:'')}<small>${esc(FGRP||'Todos los servicios')}${cur?' · '+cur[2]:''}</small>`;
+   $('#app').dataset.screen=SCREEN;
+   {const nb=$('#notasBadge2'),n=NOTAS.filter(x=>!x.aplicada).length;if(nb){nb.hidden=!n;nb.textContent=n}}}
+
+  const buscador=`<div class="buscar"><input type="search" id="q" placeholder="Buscar por nombre o cama" aria-label="Buscar paciente por nombre o cama" value="${esc(QTXT)}"></div>`;
+  let html='';
+  if(TAB==='foco'){
+    const l=filtrar(foco);const urg=l.filter(r=>priN(r)===0&&!DONE[r.id]).length,hoy=l.filter(r=>priN(r)===1&&!DONE[r.id]).length,pend=l.filter(r=>!DONE[r.id]).length;
+    const donde=FGRP?`En ${esc(FGRP)} hay`:'Hay';
+    html=`<p class="resumen" style="margin:0">${pend?`${donde} <strong>${pend}</strong> paciente${pend>1?'s':''} con posible infección asociada a la atención por revisar.${urg?` Empieza por ${urg>1?'los':'el'} <b>${urg} urgente${urg>1?'s':''}</b>${hoy?` y luego ${hoy>1?'los':'el'} ${hoy} de hoy`:''}.`:hoy?` ${hoy} ${hoy>1?'son':'es'} para revisar hoy.`:''}`:'✓ No quedan pacientes por revisar con estos filtros.'}</p>${tiraRevisadosHTML(revisadosAll)}${buscador}${porServicio(l,{})}`;
+  }else if(TAB==='iaas'){
+    const orden=r=>isFoco(r)?0:cultPend(r)?1:2;
+    const l=filtrar(iaasAll).sort((a,b)=>orden(a)-orden(b)||priN(a)-priN(b)||String(b.det||'').localeCompare(String(a.det||'')));
+    const nPend=l.filter(isFoco).length,nCap=l.filter(rhoveCapt).length,nCultPend=l.filter(r=>rhoveCapt(r)&&cultPend(r)).length;
+    html=`<p class="resumen" style="margin:0">${FGRP?`En ${esc(FGRP)} hay`:'Hay'} <strong>${l.length}</strong> IAAS activas: <b>${nPend} por revisar</b>, <strong style="color:var(--ok)">${nCap} ya en RHOVE</strong>${nCultPend?` (<span style="color:var(--warn)">${nCultPend} con cultivo pendiente</span>)`:''}.</p><p class="explica" style="margin:0">Todas las infecciones asociadas a la atención, agrupadas por servicio. En cada servicio aparecen primero las que faltan por revisar y luego las que ya están en RHOVE pero todavía esperan cultivo. Muestra todas las IAAS activas, no solo las pendientes. Excluye las descartadas.</p>${buscador}`+(l.length?porServicio(l,{estado:true}):`<div class="vacio"><h2>Sin IAAS</h2><p>No hay IAAS activas${FGRP?' en este servicio':''}.</p></div>`);
+  }else if(TAB==='cultpend'){
+    const l=filtrar(cultPendAll).sort((a,b)=>priN(a)-priN(b)||String(b.det||'').localeCompare(String(a.det||'')));
+    html=`<p class="resumen" style="margin:0">${FGRP?`En ${esc(FGRP)} hay`:'Hay'} <strong>${l.length}</strong> IAAS ya capturadas en RHOVE a las que <b>todavía les falta el resultado del cultivo</b>.</p><p class="explica" style="margin:0">Agrupadas por servicio. Toca "Marcar como revisado" cuando ya llegó el resultado y se cotejó con RHOVE.</p>${buscador}`+(l.length?porServicio(l,{estado:true}):`<div class="vacio"><h2>Sin pendientes</h2><p>No hay cultivos pendientes${FGRP?' en este servicio':''}.</p></div>`);
+  }else if(TAB==='sincult'){
+    const l=filtrar(sinCultAll).sort((a,b)=>priN(a)-priN(b)||String(b.det||'').localeCompare(String(a.det||'')));
+    html=`<p class="resumen" style="margin:0">${FGRP?`En ${esc(FGRP)} hay`:'Hay'} <strong>${l.length}</strong> posible${l.length===1?'':'s'} IAAS <b>sin ningún cultivo tomado todavía</b> (sin muestra, microorganismo ni resultado registrados).</p><p class="explica" style="margin:0">Agrupadas por servicio. Revisa si ya se solicitó el cultivo correspondiente; toca "Marcar como revisado" cuando se resuelva.</p>${buscador}`+(l.length?porServicio(l,{estado:true}):`<div class="vacio"><h2>Sin pendientes</h2><p>No hay IAAS sin cultivo${FGRP?' en este servicio':''}.</p></div>`);
+  }else if(TAB==='sincapturar'){
+    const l=filtrar(sinCapturarAll).sort((a,b)=>priN(a)-priN(b)||String(b.det||'').localeCompare(String(a.det||'')));
+    html=`<p class="resumen" style="margin:0">${FGRP?`En ${esc(FGRP)} hay`:'Hay'} <strong>${l.length}</strong> IAAS ya capturada${l.length===1?'':'s'} en RHOVE a la${l.length===1?'':'s'} que <b>ya tiene microorganismo identificado (por censo o por el cultivo en PDF de laboratorio), pero ese microorganismo todavía no está dado de alta en la plataforma RHOVE</b>.</p><p class="explica" style="margin:0">Agrupadas por servicio. Toca "Marcar como revisado" en cuanto quede cargado en RHOVE.</p>${buscador}`+(l.length?porServicio(l,{estado:true}):`<div class="vacio"><h2>Sin pendientes</h2><p>No hay cultivos sin capturar en RHOVE${FGRP?' en este servicio':''}.</p></div>`);
+  }else if(TAB==='revisados'){
+    const l=filtrar(revisadosAll).sort((a,b)=>String((DONE[b.id]&&DONE[b.id].fecha)||'').localeCompare(String((DONE[a.id]&&DONE[a.id].fecha)||''))||priN(a)-priN(b));
+    html=`<p class="resumen" style="margin:0">${FGRP?`En ${esc(FGRP)} hay`:'Hay'} <strong>${l.length}</strong> paciente${l.length===1?'':'s'} marcado${l.length===1?'':'s'} como <b>revisado${l.length===1?'':'s'}</b>.</p><p class="explica" style="margin:0">Son los que ya viste y siguen en seguimiento. Aquí no se pierden de vista: revísalos de nuevo cuando llegue un resultado o cambie su estado. Toca el botón de la ficha si lo marcaste por error y quieres regresarlo a "Pacientes por revisar".</p>${buscador}`+(l.length?porServicio(l,{todos:true}):`<div class="vacio"><h2>${QTXT?'Sin resultados':'Sin revisados'}</h2><p>${QTXT?'Ningún revisado coincide con tu búsqueda.':`Todavía no hay pacientes marcados como revisados${FGRP?' en este servicio':''}.`}</p></div>`);
+  }else if(TAB==='descartados'){
+    const l=filtrar(descartadosAll).sort((a,b)=>String((DONE[b.id]||{}).fecha||'').localeCompare(String((DONE[a.id]||{}).fecha||''))||priN(a)-priN(b));
+    html=`<p class="resumen" style="margin:0">${FGRP?`En ${esc(FGRP)} hay`:'Hay'} <strong>${l.length}</strong> paciente${l.length===1?'':'s'} <b>descartado${l.length===1?'':'s'} como IAAS</b> por el equipo.</p><p class="explica" style="margin:0">Aquí se concentran los casos marcados como “Descartado”. Cada ficha dice quién lo descartó y cuándo; toca ese botón para regresarlo a la lista si se descartó por error.</p>${buscador}`+(l.length?porServicio(l,{todos:true}):`<div class="vacio"><h2>${QTXT?'Sin resultados':'Sin descartados'}</h2><p>${QTXT?'Ningún descartado coincide con tu búsqueda.':`Todavía no hay pacientes descartados${FGRP?' en este servicio':''}.`}</p></div>`);
+  }else if(TAB==='reingresos'){
+    const l=filtrar(reingresosAll).sort((a,b)=>priN(a)-priN(b)||String(b.det||'').localeCompare(String(a.det||'')));
+    html=`<p class="resumen" style="margin:0">${FGRP?`En ${esc(FGRP)} hay`:'Hay'} <strong>${l.length}</strong> paciente${l.length===1?'':'s'} que <b>reingresó y ya tenía una IAAS capturada en RHOVE en una hospitalización anterior</b>.</p><p class="explica" style="margin:0">Agrupados por servicio. Revisa si corresponde al mismo evento ya capturado o si amerita abrir una IAAS nueva de esta hospitalización.</p>${buscador}`+(l.length?porServicio(l,{estado:true}):`<div class="vacio"><h2>Sin reingresos</h2><p>No hay reingresos con IAAS previa${FGRP?' en este servicio':''}.</p></div>`);
+  }else if(TAB==='brotes'){
+    const qb=norm(QTXT);
+    const matchQ=b=>!qb||b.members.some(r=>norm([r.nombre,r.cama,r.exp,r.micro,r.svc].join(' ')).includes(qb));
+    const brF=br.filter(matchQ);
+    const idAll=brotesIdenticos(svcRows.filter(bySvc));
+    const idF=idAll.filter(matchQ);
+    const toggle=`<div class="progs"><button class="pbtn" type="button" data-atbview="" aria-pressed="${!ATBVIEW}">Todos <span class="num">${br.length}</span></button><button class="pbtn" type="button" data-atbview="identico" aria-pressed="${ATBVIEW==='identico'}">🧬 Antibiograma idéntico <span class="num">${idAll.length}</span></button></div>`;
+    const cult=filtrar(svcRows.filter(cultRec)).sort((a,b)=>b.fres.localeCompare(a.fres));
+    const filaPac=r=>{const key='brotepac|'+r.id,open=!!OPEN[key];
+      return `<li><button class="fila-pac" type="button" data-grp="${esc(key)}" aria-expanded="${open}"><div class="cama"><small>Cama</small>${esc(r.cama||'s/c')}</div><div><div style="font-weight:700">${esc(r.nombre||'')}</div><div class="meta">${esc(r.svc||'')}${r.fres?` · cultivo ${fmt(r.fres)}`:''}</div></div><span class="flecha">${open?'▾ ocultar':'▸ ver ficha'}</span></button>${open?`<div class="brote-ficha">${eventoHTML(r,{})}</div>`:''}</li>`};
+    const cardBrote=b=>`<div class="brote ${b.ab?'ab':''}"><h3>${esc(pretty(b.org))}</h3><div class="meta">${b.members.length} pacientes · coinciden en ${esc(b.shared.join(', '))}</div><ul>${b.members.map(filaPac).join('')}</ul></div>`;
+    const cardIdentico=b=>`<div class="brote ${b.ab?'ab':''}"><h3>${esc(pretty(b.org))}</h3><div class="meta">${b.members.length} pacientes · <b>mismo antibiograma</b> (sensible/resistente idéntico) · coinciden en ${esc(b.shared.join(', '))}</div><ul>${b.members.map(filaPac).join('')}</ul></div>`;
+    if(ATBVIEW==='identico'){
+      html=`<p class="explica" style="margin:0">Aquí aparecen <b>exclusivamente</b> pacientes que ya califican como posible brote (mismo microorganismo y mismo servicio actual o previo) y que además tienen el antibiograma (sensible/intermedio/resistente por antibiótico) <b>idéntico</b> — la señal más fuerte dentro de "Posibles brotes". <i>Acinetobacter baumannii</i> siempre se marca en rojo.</p>${toggle}${buscador}`+
+       (idF.length?`<div class="brotes">${idF.map(cardIdentico).join('')}</div>`:`<div class="vacio"><h2>${qb?'Sin resultados':'Sin coincidencias'}</h2><p>${qb?'Ningún caso con antibiograma idéntico coincide con tu búsqueda.':`No hay dos pacientes con el mismo microorganismo y antibiograma idéntico${FGRP?' en este servicio':''}.`}</p></div>`);
+    }else{
+      html=`<p class="explica" style="margin:0">Aquí aparecen <b>dos o más pacientes con el mismo microorganismo</b> que estuvieron en el mismo servicio. No es un brote confirmado; hay que revisarlo con UVEH. <i>Acinetobacter baumannii</i> siempre se marca en rojo.</p>${toggle}${buscador}`+
+       (brF.length?`<div class="brotes">${brF.map(cardBrote).join('')}</div>`:`<div class="vacio"><h2>${qb?'Sin resultados':'Sin posibles brotes'}</h2><p>${qb?'Ningún posible brote coincide con tu búsqueda.':`No hay coincidencias de microorganismo y servicio${FGRP?' en este servicio':''}.`}</p></div>`)+
+       `<h2 style="font-size:24px;margin-top:8px">Cultivos que llegaron en los últimos 2 días</h2>`+(cult.length?`<div class="lista">${agruparPacientes(cult).map(g=>tarjeta(g,{noCheck:true,prog:!isIAAS(g[0])})).join('')}</div>`:`<p class="explica" style="margin:0">No hay cultivos nuevos${FGRP?' en este servicio':''}.</p>`);
+    }
+  }else if(TAB==='otros'){
+    const pc={};otros.forEach(r=>{const k=r.prog||'Sin programa';pc[k]=(pc[k]||0)+1});
+    if(FPROG&&!pc[FPROG])FPROG='';
+    const l=filtrar(otros.filter(r=>!FPROG||(r.prog||'Sin programa')===FPROG)).sort((a,b)=>priN(a)-priN(b));
+    html=`<p class="explica" style="margin:0">Otros padecimientos en vigilancia, como tuberculosis, VIH o dengue. Toca un programa para ver solo ese.</p><div class="progs"><button class="pbtn" type="button" data-prog="" aria-pressed="${!FPROG}">Todos <span class="num">${otros.length}</span></button>${Object.keys(pc).sort((a,b)=>pc[b]-pc[a]).map(k=>`<button class="pbtn" type="button" data-prog="${esc(k)}" aria-pressed="${FPROG===k}">${esc(k)} <span class="num">${pc[k]}</span></button>`).join('')}</div>${buscador}`+
+     (l.length?porServicio(l,{prog:!FPROG}):`<div class="vacio"><h2>Sin casos</h2><p>No hay casos de otros programas${FGRP?' en este servicio':''}.</p></div>`);
+  }else if(TAB==='egresos'){
+    const MOT=['Defunción','Egreso','Traslado','No localizado en censo','Ambulatorio','Cerrado'];
+    const cnt={};egresosAll.forEach(r=>{const m=motivoEgr(r);cnt[m]=(cnt[m]||0)+1});
+    if(FEGR&&!cnt[FEGR])FEGR='';
+    const l=filtrar(egresosAll.filter(r=>!FEGR||motivoEgr(r)===FEGR)).sort((a,b)=>String(b.egreso||b.det||'').localeCompare(String(a.egreso||a.det||'')));
+    const btns=`<div class="progs"><button class="pbtn" type="button" data-egr="" aria-pressed="${!FEGR}">Todos <span class="num">${egresosAll.length}</span></button>${MOT.filter(m=>cnt[m]).map(m=>`<button class="pbtn" type="button" data-egr="${esc(m)}" aria-pressed="${FEGR===m}">${esc(m)} <span class="num">${cnt[m]}</span></button>`).join('')}</div>`;
+    html=`<p class="explica" style="margin:0">Pacientes con <b>IAAS</b> que <b>ya no están en los censos</b> (los demás programas de vigilancia no se incluyen aquí): egresos, defunciones, traslados y los que dejaron de aparecer${FGRP?` en ${esc(FGRP)}`:''}. Aquí se puede consultar su ficha y los cultivos adjuntos aunque ya no estén en el RADAR activo.</p>${btns}${buscador}`+
+     (l.length?`<div class="lista">${agruparPacientes(l).map(g=>`<div class="egr-wrap"><span class="egr-tag ${motivoEgr(g[0])==='Defunción'?'def':''}">${esc(motivoEgr(g[0]))}${g[0].egreso?` · ${fmt(g[0].egreso)}`:''}</span>${tarjeta(g,{noCheck:true})}</div>`).join('')}</div>`:`<div class="vacio"><h2>${QTXT?'Sin resultados':'Sin egresos'}</h2><p>${QTXT?'Ningún paciente coincide con tu búsqueda.':'Todavía no hay egresos, defunciones ni pacientes fuera de censo en este RADAR.'}</p></div>`);
+  }else{
+    const l=filtrar(capt).sort((a,b)=>grupo(a).localeCompare(grupo(b),'es')||priN(a)-priN(b));
+    html=`<p class="explica" style="margin:0">Infecciones que <b>ya están capturadas en RHOVE</b>. Solo se sigue su evolución; no hay que volver a capturarlas.</p>${buscador}`+(l.length?`<div class="lista">${l.map(r=>`<div class="fila"><div class="cama"><small>Cama</small>${esc(r.cama||'s/c')}</div><div><div class="nm">${esc(r.nombre||'')}</div><div class="meta">${esc(r.svc||'')}</div></div><div class="r2"><b style="color:var(--ink)">${esc(r.tipo||'IAAS')}</b>${r.fcap?` · capturada el ${fmt(r.fcap)}`:''}${r.micro?`<br><i>${esc(r.micro)}</i>`:''}${r.accion?`<br>Seguimiento: ${esc(r.accion)}`:''}</div></div>`).join('')}</div>`:`<div class="vacio"><h2>Sin registros</h2></div>`);
+  }
+  const hadFocus=document.activeElement&&document.activeElement.id==='q';
+  $('#vista').innerHTML=html;
+  if(hadFocus){const qi=$('#q');qi.focus();qi.setSelectionRange(QTXT.length,QTXT.length)}
+  $('#notaWrap').innerHTML=CAN_WRITE&&STATE.nota?`<details class="nota"><summary>Nota del corte (solo UVEH)</summary><p style="margin:8px 0 0">${esc(STATE.nota)}</p></details>`:'';
+  STATE._foco=foco;STATE._br=br;STATE._otros=otros;STATE._iaas=iaasAll;STATE._cultpend=cultPendAll;STATE._sincult=sinCultAll;STATE._sincapturar=sinCapturarAll;STATE._reingresos=reingresosAll;STATE._descartados=descartadosAll;STATE._revisados=revisadosAll;
+  if(!$('#secWA').hidden)$('#waText').value=waText();
+}
+
+/* ---------- Mensaje de WhatsApp (UVEH) ---------- */
+function waText(){
+  const E=['🔴','🟠','🔵','⚪','⚪'],L=[];
+  const bloque=list=>{const byG={};list.forEach(r=>(byG[grupo(r)]=byG[grupo(r)]||[]).push(r));
+    Object.keys(byG).sort((a,b)=>byG[b].filter(r=>priN(r)===0).length-byG[a].filter(r=>priN(r)===0).length||byG[b].length-byG[a].length).forEach(g=>{L.push('');L.push(`*${g.toUpperCase()} (${byG[g].length})*`);
+      byG[g].sort((a,b)=>priN(a)-priN(b)).forEach(r=>{const sg=subgrupo(r);L.push(`${E[priN(r)]} Cama ${r.cama||'s/c'}${sg&&sg!==g?` (${sg})`:''} · ${r.nombre||''}${esNuevo(r)?' 🆕':''}${rhoveCapt(r)?' ✅ RHOVE':''}${rhoveCapt(r)&&cultPend(r)?' 🧪 cultivo pendiente':''}`);L.push(`   ${r.motivo||''}`);if(r.accion&&priN(r)<=1)L.push(`   → ${r.accion}`)})})};
+  if(TAB==='iaas'){const l=(STATE._iaas||[]);L.push(`*RADAR UVEH · Todas las IAAS · ${fmtL(STATE.corte)}*`);if(FGRP)L.push(`Servicio: *${FGRP}*`);L.push(`IAAS activas: *${l.length}* · Por revisar: *${l.filter(isFoco).length}* · En RHOVE: *${l.filter(rhoveCapt).length}*${l.filter(r=>rhoveCapt(r)&&cultPend(r)).length?` (*${l.filter(r=>rhoveCapt(r)&&cultPend(r)).length}* con cultivo pendiente)`:''}`);bloque(l)}
+  else if(TAB==='cultpend'){const l=(STATE._cultpend||[]);L.push(`*RADAR UVEH · Cultivos pendientes de resultados · ${fmtL(STATE.corte)}*`);if(FGRP)L.push(`Servicio: *${FGRP}*`);L.push(`IAAS en RHOVE con cultivo pendiente: *${l.length}*`);bloque(l)}
+  else if(TAB==='sincult'){const l=(STATE._sincult||[]);L.push(`*RADAR UVEH · Posibles IAAS sin cultivos · ${fmtL(STATE.corte)}*`);if(FGRP)L.push(`Servicio: *${FGRP}*`);L.push(`IAAS activas sin ningún cultivo tomado: *${l.length}*`);bloque(l)}
+  else if(TAB==='sincapturar'){const l=(STATE._sincapturar||[]);L.push(`*RADAR UVEH · Cultivo sin capturar en RHOVE · ${fmtL(STATE.corte)}*`);if(FGRP)L.push(`Servicio: *${FGRP}*`);L.push(`IAAS en RHOVE con cultivo nuevo sin capturar: *${l.length}*`);bloque(l)}
+  else if(TAB==='revisados'){const l=(STATE._revisados||[]);L.push(`*RADAR UVEH · Revisados · ${fmtL(STATE.corte)}*`);if(FGRP)L.push(`Servicio: *${FGRP}*`);L.push(`Pacientes revisados en seguimiento: *${l.length}*`);bloque(l)}
+  else if(TAB==='descartados'){const l=(STATE._descartados||[]);L.push(`*RADAR UVEH · Descartados · ${fmtL(STATE.corte)}*`);if(FGRP)L.push(`Servicio: *${FGRP}*`);L.push(`Pacientes descartados como IAAS: *${l.length}*`);bloque(l)}
+  else if(TAB==='reingresos'){const l=(STATE._reingresos||[]);L.push(`*RADAR UVEH · Reingresos con IAAS previa · ${fmtL(STATE.corte)}*`);if(FGRP)L.push(`Servicio: *${FGRP}*`);L.push(`Pacientes reingresados con IAAS ya capturada antes: *${l.length}*`);bloque(l)}
+  else if(TAB==='otros'){const l=(STATE._otros||[]).filter(r=>!FPROG||(r.prog||'Sin programa')===FPROG);L.push(`*RADAR UVEH · ${FPROG||'Otros programas'} · ${fmtL(STATE.corte)}*`);if(FGRP)L.push(`Servicio: *${FGRP}*`);L.push(`Casos activos: *${l.length}*`);bloque(l)}
+  else{const f=STATE._foco||[];L.push(`*RADAR UVEH · Pacientes por revisar · ${fmtL(STATE.corte)}*`);if(FGRP)L.push(`Servicio: *${FGRP}*`);L.push(`Posible IAAS por revisar: *${f.length}* · Posibles brotes: *${(STATE._br||[]).length}*`);bloque(f);
+    const br=STATE._br||[];if(br.length){L.push('');L.push('*⚠️ Posibles brotes*');br.forEach(b=>L.push(`• _${pretty(b.org)}_ – ${b.members.length} pacientes (${b.shared[0]}): camas ${b.members.map(r=>r.cama||'s/c').join(', ')}`))}}
+  L.push('');L.push('🔴 Urgente · 🟠 Hoy · 🔵 Puede esperar · ⚪ Seguimiento');
+  return L.join('\n');
+}
+
+/* ---------- Interacción ---------- */
+function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2600)}
+document.addEventListener('change',e=>{
+  if(e.target.id==='loteFile'){const f=e.target.files&&e.target.files[0];if(f)loteAnalizar(f);return}
+  if(e.target.dataset&&e.target.dataset.loteidx!==undefined&&LOTE){const p=LOTE.pages[Number(e.target.dataset.loteidx)];p.sel=e.target.value;if(p.sel&&p.estado!=='ok')p.estado='man';renderLote()}
+});
+document.addEventListener('click',e=>{const im=e.target.closest&&e.target.closest('img[data-loteimg]');if(im)im.classList.toggle('big')});
+document.addEventListener('click',e=>{
+  const t=e.target.closest('button');if(!t)return;
+  if(t.id==='btnRefresh'){cargar(false);return}
+  if(t.id==='btnAyuda'){const a=$('#ayuda');a.hidden=!a.hidden;if(!a.hidden)a.scrollIntoView({block:'start'});return}
+  if(t.id==='btnAyudaCerrar'){$('#ayuda').hidden=true;store.set('uveh_ayuda',1);return}
+  if(t.dataset.screen){SCREEN=t.dataset.screen;render();window.scrollTo({top:0});return}
+  if(t.dataset.go){const b=document.getElementById(t.dataset.go);if(b)b.click();return}
+  if(t.dataset.otras){OTRAS=!OTRAS;render();return}
+  if(t.dataset.sub!==undefined){FSUB=t.dataset.sub;render();return}
+  if(t.dataset.svc!==undefined){SCREEN='inicio';FGRP=t.dataset.svc;FSUB='';store.set('uveh_svc',FGRP);render();toast(FGRP?`Mostrando ${FGRP}`:'Mostrando todos los servicios');return}
+  if(t.dataset.tab){TAB=t.dataset.tab;OTRAS=false;SCREEN='lista';store.set('uveh_tab',TAB);render();window.scrollTo({top:0});return}
+  if(t.dataset.prog!==undefined){FPROG=t.dataset.prog;render();return}
+  if(t.dataset.egr!==undefined){FEGR=t.dataset.egr;render();return}
+  if(t.dataset.atbview!==undefined){ATBVIEW=t.dataset.atbview;render();return}
+  if(t.dataset.critsave){const id=t.dataset.critsave,r=(STATE.rows||[]).find(x=>x.id===id),tt=CRIT_TMP[id];
+    if(!r||!tt)return;
+    if(!tt.cat||!tt.cumple){toast('Elige el tipo de IAAS y si cumple criterios.');return}
+    if(!MARCAS){toast('Para guardar criterios hace falta acceso a la hoja de notas. Pide a UVEH que te la comparta.');return}
+    const key=mkC(r),detalle={cat:tt.cat,marcados:[...tt.marcados],cumple:tt.cumple};
+    MARCAS[key]={key,tipo:'criterios',autor:'tú',fecha:new Date().toISOString(),detalle};
+    OPEN['crit|'+id]=false;delete CRIT_TMP[id];render();
+    enviarMarcas([{key,tipo:'criterios',activa:true,nombre:r.nombre||'',cama:r.cama||'',servicio:grupo(r)||'',detalle}]);
+    toast('Criterios guardados');return}
+  if(t.dataset.grp){OPEN[t.dataset.grp]=t.getAttribute('aria-expanded')!=='true';render();return}
+  if(t.dataset.done){const id=t.dataset.done,r=(STATE.rows||[]).find(x=>x.id===id);if(!r)return;if(DONE[id]){desmarcar(r);toast('Se regresó a la lista')}else{marcar(r,'revisado');toast('✓ Marcado como revisado')}return}
+  if(t.dataset.siniaas){const id=t.dataset.siniaas,r=(STATE.rows||[]).find(x=>x.id===id);if(!r)return;marcar(r,'descartado');toast('✓ Marcado como Descartado');return}
+  if(t.dataset.nefedit!==undefined){notaFichaEditKey=t.dataset.nefedit;render();return}
+  if(t.dataset.nefcancel!==undefined){notaFichaEditKey=null;render();return}
+  if(t.dataset.nefsave!==undefined){const key=t.dataset.nefsave,wrap=t.closest('.pac-nota'),ta=wrap?wrap.querySelector('textarea'):null,v=ta?ta.value.trim():'';STATE.notasEnf=STATE.notasEnf||{};if(v)STATE.notasEnf[key]=v;else delete STATE.notasEnf[key];notaFichaEditKey=null;render();publicar();return}
+  if(t.id==='btnWA'){$('#secWA').hidden=false;$('#waText').value=waText();$('#secWA').scrollIntoView({block:'start'});return}
+  if(t.id==='btnCloseWA'){$('#secWA').hidden=true;return}
+  if(t.id==='btnCopy'){const v=$('#waText').value,fb=()=>{$('#waText').select();toast('Selecciona el texto y cópialo con Ctrl+C')};try{navigator.clipboard.writeText(v).then(()=>toast('Copiado. Pégalo en WhatsApp.'),fb)}catch(_){fb()}}
+  if(t.id==='btnNotas'){const p=$('#panelNotas');p.hidden=!p.hidden;if(!p.hidden){renderNotasPanel();p.scrollIntoView({block:'start'})}return}
+  if(t.id==='btnNotasCerrar'){$('#panelNotas').hidden=true;return}
+  if(t.id==='btnArch'){const p=$('#panelArch');p.hidden=!p.hidden;if(!p.hidden){renderArchPanel();p.scrollIntoView({block:'start'})}return}
+  if(t.id==='btnArchCerrar'){$('#panelArch').hidden=true;return}
+  if(t.dataset.notatoggle){const id=t.dataset.notatoggle,f=document.querySelector(`[data-notaform="${CSS.escape(id)}"]`);if(f){f.hidden=!f.hidden;if(!f.hidden){const ta=f.querySelector('textarea');ta&&ta.focus()}}return}
+  if(t.dataset.notacancel){const id=t.dataset.notacancel,f=document.querySelector(`[data-notaform="${CSS.escape(id)}"]`);if(f){f.hidden=true;const ta=f.querySelector('textarea');if(ta)ta.value=''}return}
+  if(t.dataset.notasend){const id=t.dataset.notasend,f=document.querySelector(`[data-notaform="${CSS.escape(id)}"]`),ta=f&&f.querySelector('textarea'),texto=(ta&&ta.value||'').trim();
+    if(!texto){toast('Escribe la nota antes de enviar');return}
+    const r=(STATE.rows||[]).find(x=>pacKey(x)===id)||{};
+    t.disabled=true;t.textContent='Enviando…';
+    google.script.run
+      .withSuccessHandler(res=>{NOTAS=res||[];toast('Nota enviada a UVEH');if(ta)ta.value='';if(f)f.hidden=true;renderNotasBadge();render()})
+      .withFailureHandler(err=>{const sin=String(err&&err.message||'').includes('SIN_ACCESO_NOTAS');toast(sin?'Tu cuenta no tiene permiso para dejar notas. Pide a UVEH que te comparta la hoja de notas.':'No se pudo enviar la nota. Inténtalo de nuevo.');t.disabled=false;t.textContent='Enviar nota'})
+      .guardarNotaCambio(JSON.stringify({id,nombre:r.nombre||'',cama:r.cama||'',servicio:grupo(r)||'',texto}));
+    return}
+  if(t.dataset.notaedit){EDITN=Number(t.dataset.notaedit);DELN=0;renderNotasPanel();const ta=document.querySelector('[data-notaedtxt]');ta&&ta.focus();return}
+  if(t.dataset.notaedcancel){EDITN=0;renderNotasPanel();return}
+  if(t.dataset.notaedsave){const ta=document.querySelector('[data-notaedtxt]'),texto=(ta&&ta.value||'').trim();if(!texto){toast('La nota no puede quedar vacía');return}
+    t.disabled=true;t.textContent='Guardando…';
+    google.script.run
+      .withSuccessHandler(res=>{NOTAS=res||[];EDITN=0;renderNotasBadge();renderNotasPanel();render();toast('Nota actualizada')})
+      .withFailureHandler(err=>{toast('No se pudo guardar: '+(err&&err.message||'inténtalo de nuevo'));t.disabled=false;t.textContent='Guardar cambios'})
+      .editarNotaCambio(t.dataset.notaedsave,texto);
+    return}
+  if(t.dataset.notadelask){DELN=Number(t.dataset.notadelask);EDITN=0;renderNotasPanel();return}
+  if(t.dataset.notadelcancel){DELN=0;renderNotasPanel();return}
+  if(t.dataset.notadel){t.disabled=true;t.textContent='Borrando…';
+    google.script.run
+      .withSuccessHandler(res=>{NOTAS=res||[];DELN=0;renderNotasBadge();renderNotasPanel();render();toast('Nota borrada')})
+      .withFailureHandler(err=>{toast('No se pudo borrar: '+(err&&err.message||'inténtalo de nuevo'));t.disabled=false;t.textContent='Sí, borrar'})
+      .eliminarNotaCambio(t.dataset.notadel);
+    return}
+  if(t.dataset.notadone){t.disabled=true;t.textContent='Marcando…';
+    google.script.run
+      .withSuccessHandler(res=>{NOTAS=res||[];renderNotasBadge();renderNotasPanel();toast('Nota marcada como aplicada')})
+      .withFailureHandler(err=>{toast('No se pudo marcar: '+(err&&err.message||'inténtalo de nuevo'));t.disabled=false;t.textContent='✓ Ya lo pasé al Excel'})
+      .marcarNotaAplicada(t.dataset.notadone);
+    return}
+  if(t.dataset.lote==='abrir'){LOTE={fase:'elegir'};renderLote();return}
+  if(t.dataset.lote==='cancelar'){LOTE=null;renderLote();return}
+  if(t.dataset.lote==='enviar'){loteEnviar();return}
+  if(t.dataset.archtoggle){const id=t.dataset.archtoggle,f=document.querySelector(`[data-archform="${CSS.escape(id)}"]`);if(f){f.hidden=!f.hidden}return}
+  if(t.dataset.archcancel){const id=t.dataset.archcancel,f=document.querySelector(`[data-archform="${CSS.escape(id)}"]`);if(f){f.hidden=true;const inp=f.querySelector('input[type=file]');if(inp)inp.value=''}return}
+  if(t.dataset.archsend){const id=t.dataset.archsend,f=document.querySelector(`[data-archform="${CSS.escape(id)}"]`),inp=f&&f.querySelector('input[type=file]'),file=inp&&inp.files&&inp.files[0];
+    if(!file){toast('Elige una foto o PDF antes de subir');return}
+    if(file.size>15*1024*1024){toast('El archivo es demasiado grande (máximo 15 MB)');return}
+    const nombre=f.dataset.nombre||'',cama=f.dataset.cama||'',servicio=f.dataset.servicio||'';
+    t.disabled=true;t.textContent='Subiendo…';
+    const rd=new FileReader();
+    rd.onload=ev=>{
+      const base64=String(ev.target.result||'').split(',')[1]||'';
+      google.script.run
+        .withSuccessHandler(res=>{ARCHIVOS=res||[];renderArchPanel();toast('Cultivo adjuntado');if(inp)inp.value='';if(f)f.hidden=true;t.disabled=false;t.textContent='Subir';render()})
+        .withFailureHandler(err=>{const sin=String(err&&err.message||'').includes('SIN_ACCESO_CULTIVOS');toast(sin?'Tu cuenta no tiene permiso para adjuntar archivos. Pide a UVEH que te comparta la carpeta de cultivos.':'No se pudo subir el archivo. Inténtalo de nuevo.');t.disabled=false;t.textContent='Subir'})
+        .subirCultivo(JSON.stringify({id,nombre,cama,servicio,filename:file.name,mimeType:file.type||'application/octet-stream',base64}));
+    };
+    rd.onerror=()=>{toast('No se pudo leer el archivo');t.disabled=false;t.textContent='Subir'};
+    rd.readAsDataURL(file);
+    return}
+});
+document.addEventListener('change',e=>{
+  const el=e.target;
+  if(el.dataset.critcat!==undefined){const t=CRIT_TMP[el.dataset.critcat];if(t){t.cat=el.value;t.marcados=[]}render();return}
+  if(el.dataset.critchk!==undefined){const t=CRIT_TMP[el.dataset.critchk];if(t){const i=+el.value;t.marcados=el.checked?[...new Set([...t.marcados,i])]:t.marcados.filter(x=>x!==i)}return}
+  if(el.dataset.critcumple!==undefined){const t=CRIT_TMP[el.dataset.critcumple];if(t)t.cumple=el.value;return}
+});
+document.addEventListener('change',e=>{if(e.target.id==='subSel'){FSUB=e.target.value;render()}});
+let qT;document.addEventListener('input',e=>{if(e.target.id==='archQ'){renderArchPanel();return}if(e.target.id==='q'){QTXT=e.target.value;clearTimeout(qT);qT=setTimeout(render,250)}});
+
+if(!store.get('uveh_ayuda',0))$('#ayuda').hidden=false;
+render();
+cargar(false);
+cargarNotas();
+cargarArchivos();
+cargarMarcas();
+setInterval(()=>{if(!document.hidden){cargar(true);cargarNotas();cargarArchivos();cargarMarcas()}},10*60*1000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){cargar(true);cargarNotas();cargarArchivos();cargarMarcas()}});
+}
+if(document.body)boot();else document.addEventListener('DOMContentLoaded',boot);
+})();
+</script>
+</body>
+</html>

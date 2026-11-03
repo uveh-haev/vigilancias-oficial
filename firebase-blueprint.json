@@ -1,0 +1,348 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Public operational profile and role of an HAEV hospital staff member (PII excluded).",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID of the staff member."
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Visible clinical name of the staff member."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["uveh", "enfermeria"],
+          "description": "Assigned RBAC operational role."
+        },
+        "serviceArea": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 80,
+          "description": "Hospital service or floor assigned to the user."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "revoked"],
+          "description": "Account access status."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server last update timestamp."
+        }
+      },
+      "required": [
+        "uid",
+        "displayName",
+        "role",
+        "serviceArea",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "UserPrivateContact": {
+      "title": "UserPrivateContact",
+      "description": "Isolated PII contact record restricted strictly to the owner and UVEH bootstrapped administrator.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Owner Firebase Auth UID."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 254,
+          "description": "Verified Google account email address."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": ["uid", "email", "createdAt", "updatedAt"]
+    },
+    "HospitalWorkspace": {
+      "title": "HospitalWorkspace",
+      "description": "Master Gate membership and RBAC directory for RADAR UVEH at HAEV.",
+      "type": "object",
+      "properties": {
+        "hospitalId": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 32,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Canonical hospital identifier (haev)."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 160,
+          "description": "Official hospital name."
+        },
+        "createdByUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Creator UID."
+        },
+        "updatedByUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Last updater UID."
+        },
+        "coordinatorUids": {
+          "type": "array",
+          "description": "Bounded list (<= 25) of UVEH coordinator UIDs."
+        },
+        "memberUids": {
+          "type": "array",
+          "description": "Bounded list (<= 200) of active hospital staff UIDs."
+        },
+        "revokedUids": {
+          "type": "array",
+          "description": "Bounded list (<= 200) of revoked UIDs blocked from re-enrolling."
+        },
+        "staffDirectory": {
+          "type": "object",
+          "description": "Bounded map (<= 200) of staff display metadata without PII."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": [
+        "hospitalId",
+        "name",
+        "createdByUid",
+        "updatedByUid",
+        "coordinatorUids",
+        "memberUids",
+        "revokedUids",
+        "staffDirectory",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PublishedBulletin": {
+      "title": "PublishedBulletin",
+      "description": "Published epidemiological RADAR cut shared in real time across the hospital.",
+      "type": "object",
+      "properties": {
+        "bulletinId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Bulletin document identifier (active)."
+        },
+        "hospitalId": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 32,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Parent hospital identifier."
+        },
+        "corte": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 40,
+          "description": "ISO date of the epidemiological cut."
+        },
+        "nota": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 2000,
+          "description": "General note for the cut."
+        },
+        "file": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 240,
+          "description": "Source Excel or Google Sheet name."
+        },
+        "publicadoIso": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 64,
+          "description": "ISO timestamp when the cut was published."
+        },
+        "notasEnf": {
+          "type": "object",
+          "description": "Bounded map (<= 500) of floor nursing notes indexed by patient."
+        },
+        "rows": {
+          "type": "array",
+          "description": "Bounded list (<= 500) of active surveillance events."
+        },
+        "cerrados": {
+          "type": "array",
+          "description": "Bounded list (<= 300) of closed surveillance episodes."
+        },
+        "abRows": {
+          "type": "array",
+          "description": "Bounded list (<= 1000) of S/I/R antibiogram entries."
+        },
+        "state": {
+          "type": "string",
+          "enum": ["published", "archived"],
+          "description": "Lifecycle state with terminal lock on archived."
+        },
+        "createdByUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Publisher UID."
+        },
+        "updatedByUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Last updater UID."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": [
+        "bulletinId",
+        "hospitalId",
+        "corte",
+        "nota",
+        "file",
+        "publicadoIso",
+        "notasEnf",
+        "rows",
+        "cerrados",
+        "abRows",
+        "state",
+        "createdByUid",
+        "updatedByUid",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "OperationalBoard": {
+      "title": "OperationalBoard",
+      "description": "Real-time collaborative board for shared marks, nursing notes, culture metadata, CODECIN snapshots, and SUIVE-3 outbreak studies.",
+      "type": "object",
+      "properties": {
+        "boardId": {
+          "type": "string",
+          "enum": ["marks", "notes", "cultures", "codecin", "outbreaks"],
+          "description": "Specific operational board identifier."
+        },
+        "hospitalId": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 32,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Parent hospital identifier."
+        },
+        "items": {
+          "type": "array",
+          "description": "Bounded list (<= 500) of structured board records."
+        },
+        "createdByUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Creator UID."
+        },
+        "updatedByUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Last updater UID."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": [
+        "boardId",
+        "hospitalId",
+        "items",
+        "createdByUid",
+        "updatedByUid",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Public operational role and service assignment for an individual user."
+    },
+    "/users/{userId}/private/{docId}": {
+      "schema": "UserPrivateContact",
+      "description": "Isolated PII contact details accessible only to the user and bootstrapped admin."
+    },
+    "/hospitals/{hospitalId}": {
+      "schema": "HospitalWorkspace",
+      "description": "Master Gate hospital document managing active members, coordinators, and revocations."
+    },
+    "/hospitals/{hospitalId}/bulletins/{bulletinId}": {
+      "schema": "PublishedBulletin",
+      "description": "Active epidemiological bulletin published by UVEH coordinators."
+    },
+    "/hospitals/{hospitalId}/boards/{boardId}": {
+      "schema": "OperationalBoard",
+      "description": "Synchronized operational boards (marks, notes, cultures, codecin) governed by parent hospital membership."
+    }
+  }
+}

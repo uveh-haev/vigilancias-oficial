@@ -1,0 +1,6 @@
+{
+  "name": "Boletín UVEH — Vigilancia Epidemiológica",
+  "description": "Plataforma operativa de vigilancia epidemiológica hospitalaria (UVEH) para detección de IAAS, lectura inteligente de cultivos y antibiogramas, notas clínicas por voz e informes CODECIN.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

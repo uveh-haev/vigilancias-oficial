@@ -1,0 +1,37 @@
+Eres un desarrollador front-end senior. Te adjunto `Index-4.html` (mi `Index.html` completo de producción, 1,389 líneas), una aplicación web de un solo archivo (HTML + CSS + JavaScript vanilla, sin frameworks) que corre dentro de Google Apps Script (`HtmlService`). La usan enfermeras y epidemiólogos de un hospital en México para dar seguimiento a pacientes con posibles infecciones asociadas a la atención de la salud (IAAS). Todo el texto está en español.
+
+## Qué quiero
+Mejora la **claridad visual, la usabilidad en celular, la accesibilidad y el rendimiento** aplicando estas mejoras prioritarias:
+
+1. **Áreas táctiles en celular (mínimo 44–48 px):** en botones de cabecera (`.hbtn`), acciones (`.btn`, `.revisar`, `.masbtn`, `.pbtn`), tira y botones de revisados (`.rv-head`, `.rv-btn`), filas de pacientes/grupos (`.fila-pac`, `.grp-h`), adjuntos (`.arch-item`) y casillas/radios del panel de Criterios (`.crit-box input`). En pantallas muy angostas (`<= 400px`), apila `.revisar-grp` a 1 columna para evitar toques accidentales entre "Ya lo revisé" y "No es infección".
+2. **Barra de navegación fija en celular:** haz que `.nv-bar.nv-m` sea `position: sticky; top: 8px; z-index: 20` con sombra sutil para cambiar de servicio o regresar a Inicio sin subir hasta arriba.
+3. **Rendimiento con cientos de fichas:**
+   - Agrega `content-visibility: auto; contain-intrinsic-size: auto 260px;` en `.pac`, `.brote` y `.fila`.
+   - Calcula `brotes(rows)` una sola vez por `render()`.
+   - Usa un `WeakMap` para cachear por objeto fila `grupo`, `subgrupo`, `subPed`, `priN`, `pacKey` y texto de búsqueda normalizado (**sin agregar propiedades nuevas a los objetos de `STATE.rows`** para no ensuciar `guardarBoletin(JSON.stringify(payload))`).
+   - Pre-indexa `NOTAS` y `ARCHIVOS` en `Map` por `pacKey` al cargarlos para evitar recorridos `O(N × M)` en cada render.
+4. **Liberar memoria de `<canvas>` en carga por lote (`loteAnalizar` y `loteComprimir`):** usa bloques `try / finally` para poner `canvas.width = 0; canvas.height = 0` en los canvas temporales (`full`, `th`, `crop`, `cv`) y llama a `pg.cleanup()` y `pdf.destroy()` al procesar PDFs para que no se cierre el navegador en celular.
+5. **Buscador sin perder el foco del teclado en celular:** separa `#vista` internamente o conserva vivo el `<input id="q">` al filtrar (con `debounce` de ~150 ms, soporte `isComposing` para acentos y botón `✕` para limpiar), y conserva la posición de scroll de la ficha activa al pulsar "Ver más datos", "📋 Criterios" o "🗒️ Nota para enfermería".
+6. **Jerarquía visual, consistencia de color y accesibilidad:**
+   - Mantén los tokens institucionales (guinda `--wine`, turquesa `#0E7C86` unificado en variables `--act`, violeta en cultivos adjuntos).
+   - Corrige el modo oscuro en `.crit-box` (reemplaza `#f6f9fa` fijo por `var(--surface-2)`).
+   - Mejora el contraste de `--ink-2`, foco visible `:focus-visible`, `aria-live="polite"` en `#sync` y cierre con tecla `Escape` o toque fuera en imágenes ampliadas (`img.big`).
+
+## Reglas ESTRICTAS que NO se pueden romper
+- **Es un solo archivo `Index.html`**, sin build ni librerías externas nuevas (solo las que ya usa el archivo).
+- **NO cambies la lógica de las marcas ni de las notas:** mantén exactamente igual el funcionamiento, estructura de datos y claves de `mkD`, `mkR`, `mkC`, `aplicarMarcas`, `marcar`, `desmarcar`, el panel **Criterios UVEH** (`CRIT`, `critHTML`, `CRIT_TMP`), `NOTAS` y `STATE.notasEnf`.
+- **NO cambies los nombres ni los argumentos de ninguna llamada a `google.script.run`:** `leerBoletin`, `guardarBoletin`, `listarMarcas`, `guardarMarcas`, `listarNotasCambio`, `guardarNotaCambio`, `editarNotaCambio`, `eliminarNotaCambio`, `marcarNotaAplicada`, `listarCultivos`, `subirCultivo`. `Code.gs` no se tocará.
+- **NO inventes ni infieras datos clínicos**, ni modifiques el contenido, textos ni orden de los campos clínicos de las fichas.
+- **Privacidad:** no anonimices nombres de pacientes ni agregues analítica o peticiones de red nuevas.
+- **Logo institucional:** conserva intacto el `data:image/jpeg;base64,...` original del encabezado.
+- Mantén el patrón de delegación de eventos (`closest('button')` + `data-*`) y envuelve todo acceso a `localStorage` en `try/catch`.
+
+## Cómo entregarme el código SIN RECORTES (MUY IMPORTANTE)
+Como `Index.html` pesa ~150 KB y supera el límite de salida de un solo mensaje (~100 KB), **NO intentes enviarlo en un solo mensaje ni uses jamás comentarios tipo `"…resto igual"` o código omitido**. Entrégalo completo en **2 mensajes exactos**:
+
+- **En tu primera respuesta:**
+  1. Lista breve (máx. 10 puntos) de las mejoras aplicadas.
+  2. Un bloque `html` con la **Parte 1 de 2** exacta (desde `<!DOCTYPE html>` hasta justo antes de `/* ---------- Clasificación ---------- */`, cortando en línea completa). Detente ahí e indícame que te escriba **"Parte 2"**.
+- **En tu segunda respuesta (cuando yo te escriba "Parte 2"):**
+  1. Un bloque `html` con la **Parte 2 de 2** exacta (desde `/* ---------- Clasificación ---------- */` hasta cerrar con `</html>`), de modo que al pegar Parte 1 + Parte 2 seguidas en Apps Script quede el `Index.html` 100 % funcional.
+  2. Lista final de cambios y checklist de pruebas.

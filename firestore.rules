@@ -1,0 +1,455 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Default-Deny Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Hardened Global Primitives ---
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isVerifiedUser() && request.auth.uid == userId;
+    }
+
+    function isBootstrappedAdmin() {
+      return isVerifiedUser() && (
+        request.auth.token.email == 'zoraah@gmail.com' ||
+        request.auth.token.email == 'uvehaev@gmail.com'
+      );
+    }
+
+    function isAllowedBoardId(boardId) {
+      return boardId is string && boardId.size() <= 20 && (
+        boardId == 'marks' ||
+        boardId == 'notes' ||
+        boardId == 'cultures' ||
+        boardId == 'codecin' ||
+        boardId == 'outbreaks'
+      );
+    }
+
+    function isCoordinatorOnlyBoard(boardId) {
+      return boardId == 'codecin' || boardId == 'outbreaks';
+    }
+
+    // --- Relational Master Gate Lookups (Executed ONLY after static checks) ---
+    function hospitalExists(hospitalId) {
+      return exists(/databases/$(database)/documents/hospitals/$(hospitalId));
+    }
+
+    function isHospitalMember(hospitalId) {
+      return isBootstrappedAdmin() || (
+        hospitalExists(hospitalId) &&
+        request.auth.uid in get(/databases/$(database)/documents/hospitals/$(hospitalId)).data.memberUids &&
+        !(request.auth.uid in get(/databases/$(database)/documents/hospitals/$(hospitalId)).data.revokedUids)
+      );
+    }
+
+    function isHospitalCoordinator(hospitalId) {
+      return isBootstrappedAdmin() || (
+        hospitalExists(hospitalId) &&
+        request.auth.uid in get(/databases/$(database)/documents/hospitals/$(hospitalId)).data.coordinatorUids &&
+        !(request.auth.uid in get(/databases/$(database)/documents/hospitals/$(hospitalId)).data.revokedUids)
+      );
+    }
+
+    // --- Entity Validation Blueprints ---
+    function isValidUserProfile(data) {
+      return data.keys().hasAll([
+          'uid',
+          'displayName',
+          'role',
+          'serviceArea',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'uid',
+          'displayName',
+          'role',
+          'serviceArea',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        isValidId(data.uid) &&
+        data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120 &&
+        data.role is string && data.role.size() <= 20 && (data.role == 'uveh' || data.role == 'enfermeria') &&
+        data.serviceArea is string && data.serviceArea.size() <= 80 &&
+        data.status is string && data.status.size() <= 20 && (data.status == 'active' || data.status == 'revoked') &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidUserPrivateContact(data) {
+      return data.keys().hasAll(['uid', 'email', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['uid', 'email', 'createdAt', 'updatedAt']) &&
+        isValidId(data.uid) &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 254 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidHospitalWorkspace(data) {
+      return data.keys().hasAll([
+          'hospitalId',
+          'name',
+          'createdByUid',
+          'updatedByUid',
+          'coordinatorUids',
+          'memberUids',
+          'revokedUids',
+          'staffDirectory',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'hospitalId',
+          'name',
+          'createdByUid',
+          'updatedByUid',
+          'coordinatorUids',
+          'memberUids',
+          'revokedUids',
+          'staffDirectory',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.hospitalId is string && data.hospitalId.size() >= 2 && data.hospitalId.size() <= 32 && data.hospitalId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.name is string && data.name.size() >= 2 && data.name.size() <= 160 &&
+        isValidId(data.createdByUid) &&
+        isValidId(data.updatedByUid) &&
+        data.updatedByUid == request.auth.uid &&
+        data.coordinatorUids is list && data.coordinatorUids.size() <= 25 &&
+        (data.coordinatorUids.size() == 0 || (data.coordinatorUids[0] is string && data.coordinatorUids[0].size() <= 128)) &&
+        data.memberUids is list && data.memberUids.size() >= 1 && data.memberUids.size() <= 200 &&
+        data.memberUids[0] is string && data.memberUids[0].size() <= 128 &&
+        data.revokedUids is list && data.revokedUids.size() <= 200 &&
+        (data.revokedUids.size() == 0 || (data.revokedUids[0] is string && data.revokedUids[0].size() <= 128)) &&
+        data.staffDirectory is map && data.staffDirectory.size() <= 200 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidPublishedBulletin(data) {
+      return data.keys().hasAll([
+          'bulletinId',
+          'hospitalId',
+          'corte',
+          'nota',
+          'file',
+          'publicadoIso',
+          'notasEnf',
+          'rows',
+          'cerrados',
+          'abRows',
+          'state',
+          'createdByUid',
+          'updatedByUid',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'bulletinId',
+          'hospitalId',
+          'corte',
+          'nota',
+          'file',
+          'publicadoIso',
+          'notasEnf',
+          'rows',
+          'cerrados',
+          'abRows',
+          'state',
+          'createdByUid',
+          'updatedByUid',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.bulletinId is string && data.bulletinId.size() >= 1 && data.bulletinId.size() <= 64 && data.bulletinId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.hospitalId is string && data.hospitalId.size() >= 2 && data.hospitalId.size() <= 32 && data.hospitalId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.corte is string && data.corte.size() <= 40 &&
+        data.nota is string && data.nota.size() <= 2000 &&
+        data.file is string && data.file.size() <= 240 &&
+        data.publicadoIso is string && data.publicadoIso.size() <= 64 &&
+        data.notasEnf is map && data.notasEnf.size() <= 500 &&
+        data.rows is list && data.rows.size() <= 500 && (data.rows.size() == 0 || data.rows[0] is map) &&
+        data.cerrados is list && data.cerrados.size() <= 300 && (data.cerrados.size() == 0 || data.cerrados[0] is map) &&
+        data.abRows is list && data.abRows.size() <= 1000 && (data.abRows.size() == 0 || data.abRows[0] is map) &&
+        data.state is string && data.state.size() <= 20 && (data.state == 'published' || data.state == 'archived') &&
+        isValidId(data.createdByUid) &&
+        isValidId(data.updatedByUid) &&
+        data.updatedByUid == request.auth.uid &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidOperationalBoard(data) {
+      return data.keys().hasAll([
+          'boardId',
+          'hospitalId',
+          'items',
+          'createdByUid',
+          'updatedByUid',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'boardId',
+          'hospitalId',
+          'items',
+          'createdByUid',
+          'updatedByUid',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        isAllowedBoardId(data.boardId) &&
+        data.hospitalId is string && data.hospitalId.size() >= 2 && data.hospitalId.size() <= 32 && data.hospitalId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.items is list && data.items.size() <= 500 && (data.items.size() == 0 || data.items[0] is map) &&
+        isValidId(data.createdByUid) &&
+        isValidId(data.updatedByUid) &&
+        data.updatedByUid == request.auth.uid &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // --- 2. /users/{userId} (Public operational role profile, NO PII) ---
+    match /users/{userId} {
+      allow get: if isVerifiedUser() && isValidId(userId) && (isOwner(userId) || isHospitalCoordinator('haev'));
+      allow list: if false;
+
+      allow create: if isVerifiedUser() &&
+        isValidId(userId) &&
+        isValidUserProfile(incoming()) &&
+        incoming().uid == userId &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        incoming().status == 'active' &&
+        (
+          (isOwner(userId) && (incoming().role == 'enfermeria' || isBootstrappedAdmin())) ||
+          isHospitalCoordinator('haev')
+        );
+
+      allow update: if isValidUserProfile(incoming()) &&
+        isVerifiedUser() &&
+        isValidId(userId) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          isBootstrappedAdmin() ||
+          (
+            isOwner(userId) &&
+            existing().status != 'revoked' &&
+            incoming().role == existing().role &&
+            incoming().status == existing().status &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'serviceArea', 'updatedAt'])
+          ) ||
+          (
+            isHospitalCoordinator('haev') &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['role', 'serviceArea', 'status', 'updatedAt'])
+          )
+        );
+
+      allow delete: if false;
+
+      // --- 3. /users/{userId}/private/{docId} (Strict PII Split Isolation) ---
+      match /private/{docId} {
+        allow get: if isVerifiedUser() && isValidId(userId) && docId == 'contact' && (isOwner(userId) || isBootstrappedAdmin());
+        allow list: if false;
+
+        allow create: if isOwner(userId) &&
+          docId == 'contact' &&
+          isValidUserPrivateContact(incoming()) &&
+          incoming().uid == userId &&
+          incoming().email == request.auth.token.email &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time;
+
+        allow update: if isValidUserPrivateContact(incoming()) &&
+          isOwner(userId) &&
+          docId == 'contact' &&
+          incoming().uid == existing().uid &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          incoming().email == request.auth.token.email &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['email', 'updatedAt']);
+
+        allow delete: if false;
+      }
+    }
+
+    // --- 4. /hospitals/{hospitalId} (Master Gate Workspace) ---
+    match /hospitals/{hospitalId} {
+      allow get: if isVerifiedUser() && hospitalId == 'haev';
+      allow list: if false;
+
+      allow create: if isVerifiedUser() &&
+        hospitalId == 'haev' &&
+        isValidHospitalWorkspace(incoming()) &&
+        incoming().hospitalId == hospitalId &&
+        incoming().createdByUid == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        incoming().revokedUids.size() == 0 &&
+        incoming().memberUids == [request.auth.uid] &&
+        (
+          (isBootstrappedAdmin() && incoming().coordinatorUids == [request.auth.uid]) ||
+          (!isBootstrappedAdmin() && incoming().coordinatorUids.size() == 0)
+        );
+
+      allow update: if isValidHospitalWorkspace(incoming()) &&
+        isVerifiedUser() &&
+        hospitalId == 'haev' &&
+        incoming().hospitalId == existing().hospitalId &&
+        incoming().createdByUid == existing().createdByUid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          isBootstrappedAdmin() ||
+          // Action 1: Verified staff self-enrollment into floor team (cannot touch coordinatorUids or revokedUids)
+          (
+            !(request.auth.uid in existing().revokedUids) &&
+            !(request.auth.uid in existing().memberUids) &&
+            incoming().coordinatorUids == existing().coordinatorUids &&
+            incoming().revokedUids == existing().revokedUids &&
+            incoming().memberUids.size() == existing().memberUids.size() + 1 &&
+            incoming().memberUids.hasAll(existing().memberUids) &&
+            request.auth.uid in incoming().memberUids &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['memberUids', 'staffDirectory', 'updatedByUid', 'updatedAt'])
+          ) ||
+          // Action 2: Active member updates own entry in staffDirectory
+          (
+            request.auth.uid in existing().memberUids &&
+            !(request.auth.uid in existing().revokedUids) &&
+            incoming().coordinatorUids == existing().coordinatorUids &&
+            incoming().memberUids == existing().memberUids &&
+            incoming().revokedUids == existing().revokedUids &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['staffDirectory', 'updatedByUid', 'updatedAt'])
+          ) ||
+          // Action 3: UVEH Coordinator manages roles, members, coordinators, or revocations
+          (
+            request.auth.uid in existing().coordinatorUids &&
+            !(request.auth.uid in existing().revokedUids) &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'name',
+              'coordinatorUids',
+              'memberUids',
+              'revokedUids',
+              'staffDirectory',
+              'updatedByUid',
+              'updatedAt'
+            ])
+          )
+        );
+
+      allow delete: if false;
+
+      // --- 5. /hospitals/{hospitalId}/bulletins/{bulletinId} ---
+      match /bulletins/{bulletinId} {
+        allow get: if isVerifiedUser() && hospitalId == 'haev' && bulletinId == 'active' && isHospitalMember(hospitalId);
+        allow list: if false;
+
+        allow create: if isVerifiedUser() &&
+          hospitalId == 'haev' &&
+          bulletinId == 'active' &&
+          isValidPublishedBulletin(incoming()) &&
+          incoming().bulletinId == bulletinId &&
+          incoming().hospitalId == hospitalId &&
+          incoming().createdByUid == request.auth.uid &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          isHospitalCoordinator(hospitalId);
+
+        allow update: if isValidPublishedBulletin(incoming()) &&
+          isVerifiedUser() &&
+          hospitalId == 'haev' &&
+          bulletinId == 'active' &&
+          incoming().bulletinId == existing().bulletinId &&
+          incoming().hospitalId == existing().hospitalId &&
+          incoming().createdByUid == existing().createdByUid &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          (existing().state != 'archived' || isBootstrappedAdmin()) &&
+          isHospitalCoordinator(hospitalId) &&
+          (
+            isBootstrappedAdmin() ||
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'corte',
+              'nota',
+              'file',
+              'publicadoIso',
+              'notasEnf',
+              'rows',
+              'cerrados',
+              'abRows',
+              'state',
+              'updatedByUid',
+              'updatedAt'
+            ])
+          );
+
+        allow delete: if false;
+      }
+
+      // --- 6. /hospitals/{hospitalId}/boards/{boardId} ---
+      match /boards/{boardId} {
+        allow get: if isVerifiedUser() &&
+          hospitalId == 'haev' &&
+          isAllowedBoardId(boardId) &&
+          isHospitalMember(hospitalId);
+        allow list: if false;
+
+        allow create: if isVerifiedUser() &&
+          hospitalId == 'haev' &&
+          isAllowedBoardId(boardId) &&
+          isValidOperationalBoard(incoming()) &&
+          incoming().boardId == boardId &&
+          incoming().hospitalId == hospitalId &&
+          incoming().createdByUid == request.auth.uid &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          (isCoordinatorOnlyBoard(boardId) ? isHospitalCoordinator(hospitalId) : isHospitalMember(hospitalId));
+
+        allow update: if isValidOperationalBoard(incoming()) &&
+          isVerifiedUser() &&
+          hospitalId == 'haev' &&
+          isAllowedBoardId(boardId) &&
+          incoming().boardId == existing().boardId &&
+          incoming().hospitalId == existing().hospitalId &&
+          incoming().createdByUid == existing().createdByUid &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          (isCoordinatorOnlyBoard(boardId) ? isHospitalCoordinator(hospitalId) : isHospitalMember(hospitalId)) &&
+          (
+            isBootstrappedAdmin() ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['items', 'updatedByUid', 'updatedAt'])
+          );
+
+        allow delete: if false;
+      }
+    }
+  }
+}
